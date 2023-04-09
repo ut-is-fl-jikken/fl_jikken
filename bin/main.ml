@@ -74,15 +74,14 @@ let print_file_struct n =
   in
   let pr f =
     if Filename.remove_extension f = f then
-      (Printf.printf "    ├── %s\n" f;
-       Printf.printf "    │   └── ...\n")
+      (Printf.printf "├── %s\n" f;
+       Printf.printf "│   └── ...\n")
     else
-      Printf.printf "    ├── %s\n" f
+      Printf.printf "├── %s\n" f
   in
-  Printf.printf "%s.zip\n" dir;
-  Printf.printf "└── %s\n" dir;
+  Printf.printf "%s\n" dir;
   List.iter pr files;
-  Printf.printf "    └── %s\n" report
+  Printf.printf "└── %s\n" report
 
 let main () =
   init()
