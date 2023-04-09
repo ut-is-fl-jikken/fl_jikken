@@ -1,10 +1,10 @@
 opam-version: "2.0"
 name: "fl_jikken"
 synopsis: "Check program for FL jikken"
-authors: [ "Sato, Ryosuke <rsato@is.s.u-tokyo.ac.jp>" ]
-maintainer: ["Sato, Ryosuke <rsato@is.s.u-tokyo.ac.jp>"]
-homepage: ["https://github.com/ryosu-sato/fl_jikken"]
-bug-reports: ["https://github.com/ryosu-sato/fl_jikken/issues"]
+authors: [ "Ken, Sakayori <sakayori@is.s.u-tokyo.ac.jp>" ]
+maintainer: ["Ken, Sakayori <sakayori@is.s.u-tokyo.ac.jp>"]
+homepage: ["https://github.com/KenSakayori/fl_jikken"]
+bug-reports: ["https://github.com/KenSakayori/fl_jikken/issues"]
 
 depends: [
   "ocaml" {= "4.14.1"}
