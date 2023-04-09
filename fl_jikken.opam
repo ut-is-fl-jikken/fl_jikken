@@ -7,7 +7,7 @@ homepage: ["https://github.com/ryosu-sato/fl_jikken"]
 bug-reports: ["https://github.com/ryosu-sato/fl_jikken/issues"]
 
 depends: [
-  "ocaml" {= "4.13.1"}
+  "ocaml" {= "4.14.1"}
   "ocamlfind"
 ]
 
