@@ -99,3 +99,10 @@ let time () =
 let debug_mode = Sys.getenv_opt "DEBUG" <> None
 let debug f =
   if debug_mode then Format.printf f else Format.ifprintf Format.std_formatter f
+
+module TColor = struct
+(*  *Character codes in OCaml are in decimal not in octal, so we use \027 instead of \033 *)
+let nc = "\027[0m"
+let red str = "\027[0;31m" ^ str ^ nc
+let green str = "\027[0;32m" ^ str ^ nc
+end
