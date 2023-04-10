@@ -39,7 +39,12 @@ type 'a result =
   | Object_file_found of string
   | Build_failed
   | Unsupported_week_no of int
+  | Zip_failed
   | Unknown_error of string
+
+let is_hatten = function
+  | Hatten (_, _) -> true
+  | _ -> false
 
 let is_directory = function
   | Toi(Dir, _) | Hatten(Dir, _) -> true
@@ -90,5 +95,7 @@ let message_of r =
   | Build_failed, false -> Printf.sprintf "Build failed"
   | Unsupported_week_no n, true -> Printf.sprintf "第%d週の課題はサポートしていません" n
   | Unsupported_week_no n, false -> Printf.sprintf "Not support: Week %d" n
+  | Zip_failed, true -> Printf.sprintf "zip コマンドが失敗しました (zip.err を参照してください)"
+  | Zip_failed, false -> Printf.sprintf "Command zip failed (See zip.err)"
   | Unknown_error s, true -> Printf.sprintf "不明なエラー (%s)" s
   | Unknown_error s, false -> Printf.sprintf "Unknown error (%s)" s

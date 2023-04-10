@@ -12,6 +12,7 @@ let init () =
     end
 
 let finalize () =
+  Sys.chdir Config.orig_working;
   if Sys.file_exists Config.dir then
     Files.remove_rec Config.dir
 
@@ -40,6 +41,12 @@ let show_results (t, items, result) =
     |> String.concat ", "
     |> Printf.printf "NG: %s";
   Printf.printf "\n"
+
+let rec passed_mandatory = function
+  | [] -> true
+  | (t, _, result) :: xs ->
+      List.for_all (function OK _ -> true | _ -> is_hatten t) result
+      && passed_mandatory xs
 
 let assiginments =
   [ 1, Week01.assignments;
@@ -83,7 +90,26 @@ let print_file_struct n =
   List.iter pr files;
   Printf.printf "└── %s\n" report
 
+let make_archive () =
+  let archive = Printf.sprintf "%02d-%s" !Config.no !Config.id in
+  let filename = Printf.sprintf "%02d-%s.zip" !Config.no !Config.id in
+  Sys.chdir Config.orig_working;
+  Sys.chdir Config.dir;
+  let r = Command.run ~filename:"zip" "zip -r %s %s" filename archive in
+  if 0 <> r then
+    (Command.mv ["zip.err"] Config.orig_working;
+    Some Zip_failed)
+  else
+    (Command.mv [filename] Config.orig_working;
+     let _ = if !Config.jp then
+       Printf.printf "%sを作成しました\n" filename
+     else
+       Printf.printf "Created %s\n" filename
+     in
+     None)
+
 let main () =
+  (*  *Log.mode := Log.Debug; *)
   init()
   |> show_error_and_exit;
 
@@ -91,15 +117,26 @@ let main () =
   | Check ->
       if !Config.file = "" then (Printf.printf "%s\n" Command_line.usage; exit 1);
 
+
       Check.file_organization()
       |> show_error_and_exit;
 
-      assoc_assignments !Config.no
-      |> List.map (fun (t,items) -> t, items, Check.file t items)
-      |> List.iter show_results;
-
-      finalize()
-
+      let results = assoc_assignments !Config.no
+                    |> List.map (fun (t,items) -> t, items, Check.file t items)
+      in
+      List.iter show_results results;
+      if not @@ passed_mandatory results then
+        (let message = if !Config.jp then
+                         "zipファイルを生成しませんでした"
+                       else
+                         "Did not generate zip file"
+         in
+         Printf.printf "%s\n" message;
+         finalize ())
+      else
+        (match make_archive () with
+         | Some e -> show_error_and_exit (Error e)
+         | None -> finalize ())
   | Print_file_struct n ->
       print_file_struct n;
       finalize()
