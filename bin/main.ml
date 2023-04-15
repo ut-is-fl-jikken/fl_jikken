@@ -92,15 +92,14 @@ let print_file_struct n =
 
 let make_env_file archive =
   (* This should go to the Util Module *)
-  let (let@) f k = f k in
   let@ cout = Io.CPS.open_out (Printf.sprintf "%s/ENV" archive) in
   let write s1 s2 = output_string cout @@ Printf.sprintf "%s: %s\n" s1 s2 in
   write "ver" Config.version;
-  write "date" @@ MyUnix.open_and_read_line "date";
+  write "date" @@ Unix.open_and_read_line "date";
   write "week" (Printf.sprintf "%02d" !Config.no);
   write "ID" !Config.id;
   write "ocaml" Config.ocaml_version;
-  write "system" @@ MyUnix.open_and_read_line "uname -a"
+  write "system" @@ Unix.open_and_read_line "uname -a"
 
 let make_archive () =
   let archive = Printf.sprintf "%02d-%s" !Config.no !Config.id in
