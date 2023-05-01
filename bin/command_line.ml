@@ -9,8 +9,8 @@ let options =
    "-p", Arg.Int (fun n -> Config.mode := Print_file_struct n), "<n>  Print the file structure for the assignment of Week <n>";
    "-v", Arg.Unit (fun () -> print_version (); exit 0), " Output the version";
    "--swipl", Arg.Set_string Config.swipl, "<command>  Set the path to SWI prolog";
-   "--verbose", Arg.Unit (fun () -> Log.mode := Verbose), "";
-   "--debug", Arg.Unit (fun () -> Log.mode := Debug), ""]
+   "--verbose", Arg.Unit (fun () -> Log.mode := Verbose), "  verbose mode";
+   "--debug", Arg.Unit (fun () -> Log.mode := Debug), "  debug mode"]
 
 let set_file filename =
   if !Config.file <> "" then
