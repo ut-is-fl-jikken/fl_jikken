@@ -25,4 +25,6 @@ let assignments =
            Value("let rec fib n = if n <= 1 then return n else memo fib (n-2) >>= fun r1 -> memo fib (n-1) >>= fun r2 -> return (r1 + r2) in runMemo (fib 80)", "23416728348467685")];
    hatten 1, [];
    hatten 2, [Type("(>>=)", "'a list -> ('a -> 'b list) -> 'b list");
-              Type("return", "'a -> 'a list")]]
+              Type("return", "'a -> 'a list")];
+   (* TODO: Add a test case *)
+   hatten 3, []]
