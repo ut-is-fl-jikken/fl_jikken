@@ -1,7 +1,7 @@
 (lang dune 3.15)
 (name fl_jikken)
 (generate_opam_files)
-(version "1.7.5")
+(version v2024.1)
 (source (github KenSakayori/fl_jikken))
 (authors "Ken Sakayori <sakayori@is.s.u-tokyo.ac.jp>")
 (maintainers "Ken Sakayori <sakayori@is.s.u-tokyo.ac.jp>")
