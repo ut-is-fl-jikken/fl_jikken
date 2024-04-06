@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  - pull_request
+  - push
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+        ocaml-compiler:
+          - "5.1.0"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout tree
+        uses: actions/checkout@v4
+
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+
+      - name: install dependencies
+        run: opam install . --deps-only
+
+      - name: install
+        run: opam exec -- dune build -p fl_jikken @install
