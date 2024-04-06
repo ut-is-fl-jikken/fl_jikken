@@ -28,5 +28,11 @@ jobs:
       - name: install dependencies
         run: opam install . --deps-only
 
-      - name: install
+      - name: build package
         run: opam exec -- dune build -p fl_jikken @install
+
+      - name: install fl_jikken
+        run: opam exec -- dune install
+
+      - name: install fl_jikken-unifier
+        run: opam exec -- ocamlfind install fl-jikken-unifier unifier/META unifier/constraintSolver.cmi unifier/constraintSolver.cmo unifier/constraintSolver.mli unifier/tySyntax.cmi unifier/tySyntax.cmo unifier/tySyntax.mli
