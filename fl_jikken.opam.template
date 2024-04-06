@@ -1,0 +1,4 @@
+install: [
+  ["dune" "install"]
+  ["ocamlfind" "install" "fl-jikken-unifier" "unifier/META" "unifier/constraintSolver.cmi" "unifier/constraintSolver.cmo" "unifier/constraintSolver.mli" "unifier/tySyntax.cmi" "unifier/tySyntax.cmo" "unifier/tySyntax.mli"]
+]
