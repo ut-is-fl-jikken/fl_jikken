@@ -1,4 +1,4 @@
-let version = "v2024.1"
+let version = "v2024.2"
 let no = ref 0
 let ocaml_version = "5.1.0"
 let orig_working = Sys.getcwd()
