@@ -37,6 +37,7 @@ let check_file_organization () =
         else
           Printf.sprintf "unzip -q -d %s %s" Config.dir !Config.file
       in
+      debug "cmd: %s@." cmd;
       if Sys.command cmd <> 0 then
         Error Cannot_extract
       else
@@ -111,6 +112,8 @@ let parse_prolog_errors es =
   List.rev acc_rev
 
 let eval_prolog_file filename query =
+  debug "[eval_prolog_file] cwd: %s@." @@ Sys.getcwd ();
+  debug "[eval_prolog_file]: %s %s@." filename (if Sys.file_exists filename then "exists" else "does not exist");
   let cmd = Printf.sprintf "%s -s %s -g '%s' -t halt" !Config.swipl filename query in
   let cin,cout,cerr = Unix.open_process_full cmd [||] in
   let result = input_lines cin in
