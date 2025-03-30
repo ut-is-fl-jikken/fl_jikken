@@ -12,8 +12,14 @@ let build = ref "dune build"
 let executable = ref "main.exe"
 let swipl = ref "swipl"
 
-type mode = Check | Print_file_struct of int
-let mode = ref Check
+type mode = Check_and_zip | Check of int | Print_file_struct of int
+let mode = ref Check_and_zip
+
+type format = Human | Json of { pretty: bool }
+let output_format = ref Human
+
+type output_dest = Stdout | Path of { path: string }
+let output_dest = ref Stdout
 
 let report_name = "report"
 let report_exts = ["txt"; "md"; "pdf"]

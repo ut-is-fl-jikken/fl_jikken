@@ -23,24 +23,70 @@ let show_error_and_exit = function
       finalize ();
       exit 1
 
-let show_results (t, items, result) =
-  Printf.printf "[%s] " (subject_of t);
+let show_results oc (t, items, result) =
+  Printf.fprintf oc "[%s] " (subject_of t);
   if List.for_all (function OK _ -> true | _ -> false) result then
     let r = List.filter_map (function OK s -> s | _ -> None) result in
     let is_opt = items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) items in
     match r, is_opt, !Config.jp with
-    | [], true, true -> Printf.printf "%s" (Util.TColor.red "NG:" ^ "答えが見つかりません")
-    | [], true, false -> Printf.printf "%s" (Util.TColor.red "NG:" ^ " No solution found")
-    | [], false, _ -> Printf.printf "%s" (Util.TColor.green "OK")
-    | _ -> Printf.printf "%s" (String.concat ", " r)
+    | [], true, true -> Printf.fprintf oc "%s" (Util.TColor.red "NG:" ^ "答えが見つかりません")
+    | [], true, false -> Printf.fprintf oc "%s" (Util.TColor.red "NG:" ^ " No solution found")
+    | [], false, _ -> Printf.fprintf oc "%s" (Util.TColor.green "OK")
+    | _ -> Printf.fprintf oc "%s" (String.concat ", " r)
   else
     result
     |> List.filter (function OK _ -> false | _ -> true)
     |> List.map message_of
     |> List.unique
     |> String.concat ", "
-    |> Printf.printf "%s %s" (Util.TColor.red "NG:");
-  Printf.printf "\n"
+    |> Printf.fprintf oc "%s %s" (Util.TColor.red "NG:");
+  Printf.fprintf oc "\n"
+
+let pack_results (t, items, result) =
+  let errors =
+    if List.for_all (function OK _ -> true | _ -> false) result then
+      let r = List.filter_map (function OK s -> s | _ -> None) result in
+      let is_opt = items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) items in
+      match r, is_opt, !Config.jp with
+      | [], true, true -> ["答えが見つかりません"]
+      | [], true, false -> ["No solution found"]
+      | [], false, _ -> []
+      | _ -> r
+    else
+      result
+      |> List.filter (function OK _ -> false | _ -> true)
+      |> List.map message_of
+      |> List.unique
+  in
+  `Assoc [
+    ("id", `String (subject_id_of t));
+    ("is_ok", `Bool (List.is_empty errors));
+    ("errors", `List (errors |> List.map (fun s -> `String s)));
+  ]
+
+let output_results results =
+  let oc, close =
+    match !Config.output_dest with
+    | Stdout -> stdout, false
+    | Path { path } -> open_out path, true
+  in
+  begin match !Config.output_format with
+  | Human ->
+    List.iter begin function results ->
+      show_results oc results
+    end results;
+  | Json { pretty } ->
+    let list =
+      results
+      |> List.map pack_results
+    in
+    let json = `List list in
+    if pretty then
+      Yojson.Safe.pretty_to_channel oc json
+    else
+      Yojson.Safe.to_channel oc json
+  end;
+  if close then close_out oc
 
 let rec passed_mandatory = function
   | [] -> true
@@ -128,17 +174,18 @@ let main () =
   |> show_error_and_exit;
 
   match !Config.mode with
-  | Check ->
+  | Check_and_zip ->
+      (* validate input *)
       if !Config.file = "" then (Printf.printf "%s\n" Command_line.usage; exit 1);
+      let filename_info = Check.analyze_filename !Config.file in
 
-
-      Check.file_organization()
+      Check.file_organization filename_info
       |> show_error_and_exit;
 
       let results = assoc_assignments !Config.no
                     |> List.map (fun (t,items) -> t, items, Check.file t items)
       in
-      List.iter show_results results;
+      output_results results;
       if not @@ passed_mandatory results then
         (let message = if !Config.jp then
                          "zipファイルを生成しませんでした"
@@ -152,6 +199,9 @@ let main () =
         (match make_archive () with
          | Some e -> show_error_and_exit (Error e)
          | None -> finalize ())
+  | Check _n ->
+      (* todo *)
+      finalize ()
   | Print_file_struct n ->
       print_file_struct n;
       finalize()

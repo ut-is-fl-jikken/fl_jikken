@@ -1,50 +1,64 @@
 open Util
 open Assignment
 
-let check_filename ?ext s =
-  match
-    match ext with
+type target_info = {
+  week_number : int;
+  id : string;
+  for_dir : bool;
+}
+
+type filename_info = {
+  input_filename : string;
+  target : target_info option;
+}
+
+let analyze_filename s : filename_info =
+  let for_dir = Sys.is_directory s in
+  let ext = if for_dir then None else Some "zip" in
+  let ext_removed = match ext with
     | None -> Some s
     | Some e when String.ends_with s ("."^e) -> Some String.(sub s 0 (length s - length e - 1))
     | _ -> None
-  with
-  | None -> None
-  | Some s ->
-      let s = Filename.basename s in
-      if String.length s = 9 && s.[2] = '-' then
-        match int_of_string (String.sub s 0 2) with
-        | n ->
-            Config.no := n;
-            let s' = String.sub s 3 (String.length s - 3) in
-            if Seq.fold_left (fun acc c -> acc && Char.is_int_char c) true (String.to_seq s') then
-              Some s'
-            else
-              None
-        | exception Invalid_argument _ -> None
-      else
-        None
+  in
+  let target =
+    match ext_removed
+    with
+    | None -> None
+    | Some s ->
+        let s = Filename.basename s in
+        if String.length s = 9 && s.[2] = '-' then
+          match int_of_string (String.sub s 0 2) with
+          | week_number ->
+              let id = String.sub s 3 (String.length s - 3) in
+              if Seq.fold_left (fun acc c -> acc && Char.is_int_char c) true (String.to_seq id) then
+                Some { week_number; id; for_dir }
+              else
+                None
+          | exception Invalid_argument _ -> None
+        else
+          None
+  in
+  { input_filename = s; target }
 
-let check_file_organization () =
-  let for_dir = Sys.is_directory !Config.file in
-  let ext = if for_dir then None else Some "zip" in
-  match check_filename ?ext !Config.file with
-  | None -> Error (File_name_invalid !Config.file)
-  | Some id ->
+let check_file_organization (file : filename_info) =
+  match file.target with
+  | None -> Error (File_name_invalid file.input_filename)
+  | Some { id; for_dir; _ } ->
       Config.id := id;
       let cmd =
         if for_dir then
-          Printf.sprintf "cp -r %s %s" !Config.file Config.dir
+          Printf.sprintf "cp -r %s %s" file.input_filename Config.dir
         else
-          Printf.sprintf "unzip -q -d %s %s" Config.dir !Config.file
+          Printf.sprintf "unzip -q -d %s %s" Config.dir file.input_filename
       in
       debug "cmd: %s@." cmd;
       if Sys.command cmd <> 0 then
         Error Cannot_extract
       else
-        let dir = Config.dir ^ "/" ^ Filename.remove_extension @@ Filename.basename !Config.file in
+        let dir = Config.dir ^ "/" ^ Filename.remove_extension @@ Filename.basename file.input_filename in
         Config.file_dir := dir;
         if not (Sys.file_exists dir && Sys.is_directory dir) then
-          Error (Directory_not_found (Filename.remove_extension !Config.file))
+          Error (Directory_not_found (Filename.remove_extension file.input_filename))
         else if not @@ List.exists (fun ext -> Sys.file_exists (Printf.sprintf "%s/%s.%s" dir Config.report_name ext)) Config.report_exts then
           Error (File_not_found (Config.report_name ^ ".*"))
         else

@@ -65,6 +65,11 @@ let subject_of t =
   | Hatten(_, n), true -> "発展" ^ string_of_int n
   | Hatten(_, n), false -> "Hatten " ^ string_of_int n
 
+let subject_id_of t =
+  match t with
+  | Toi(_, n) -> "toi" ^ string_of_int n
+  | Hatten(_, n) -> "hatten" ^ string_of_int n
+
 let message_of r =
   match r, !Config.jp with
   | OK None, _ -> ""
