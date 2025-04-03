@@ -86,6 +86,17 @@ module Files = struct
       Some filename
     else
       None
+
+  let concat_segments segments =
+    let impl = function
+      | [] -> invalid_arg "concat_segments"
+      | [unique] -> unique
+      | base :: rest -> List.fold_left Filename.concat base rest
+    in
+    try
+      Some (impl segments)
+    with
+      | Invalid_argument _ -> None
 end
 
 

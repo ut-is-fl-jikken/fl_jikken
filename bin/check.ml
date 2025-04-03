@@ -40,25 +40,54 @@ let filename s : filename_info =
   in
   { input_filename = s; target }
 
-let file_organization input_filename for_dir =
+type file_copy_method =
+  | Never
+  | Directory of { input_dir: string }
+  | Unzip of { input_filename: string }
+let copied_relative_path copy_method =
+  begin match copy_method with
+    | Never -> None
+    | Directory { input_dir } -> Some input_dir
+    | Unzip { input_filename } -> Some input_filename
+  end
+  |> Option.map (fun input_filename -> Filename.remove_extension @@ Filename.basename input_filename)
+
+let file_organization copy_method =
   let cmd =
-    if for_dir then
-      Printf.sprintf "cp -r %s %s" input_filename Config.dir
-    else
-      Printf.sprintf "unzip -q -d %s %s" Config.dir input_filename
-      in
+    match copy_method with
+    | Never ->
+      None
+    | Directory { input_dir } ->
+      Option.some @@ Printf.sprintf "cp -r %s %s" input_dir Config.dir
+    | Unzip { input_filename } ->
+      Option.some @@ Printf.sprintf "unzip -q -d %s %s" Config.dir input_filename
+  in
+  let copied_relative = copied_relative_path copy_method in
+  match cmd with
+    | None -> Ok ()
+    | Some cmd ->
       debug "cmd: %s@." cmd;
       if Sys.command cmd <> 0 then
         Error Cannot_extract
       else
-        let dir = Config.dir ^ "/" ^ Filename.remove_extension @@ Filename.basename input_filename in
+        let segments = Option.to_list copied_relative in
+        let segments =
+          if Config.sandbox () then
+            Config.dir :: segments
+          else
+            segments
+        in
+        let dir = Files.concat_segments segments in
         Config.file_dir := dir;
-        if not (Sys.file_exists dir && Sys.is_directory dir) then
-          Error (Directory_not_found (Filename.remove_extension @@ Filename.basename input_filename))
-        else if not @@ List.exists (fun ext -> Sys.file_exists (Printf.sprintf "%s/%s.%s" dir Config.report_name ext)) Config.report_exts then
-          Error (File_not_found (Config.report_name ^ ".*"))
-        else
-          Ok ()
+        match dir with
+          | None -> Ok ()
+          | Some dir ->
+            if not (Sys.file_exists dir && Sys.is_directory dir) then
+              Error (Directory_not_found (Option.value copied_relative ~default:(failwith "unreachable because of `mkdir Config.dir`")))
+            else if not @@ List.exists (fun ext -> Sys.file_exists (Printf.sprintf "%s/%s.%s" dir Config.report_name ext)) Config.report_exts then
+              Error (File_not_found (Config.report_name ^ ".*"))
+            else
+              Ok ()
 
 let count_leading_spaces s =
   let rec loop i c s =
@@ -333,12 +362,19 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
       r
 
 
-let file input_filename t items =
+let file copy_method t items =
   let is_dir = is_directory t in
-  let filename = !Config.file_dir ^ "/" ^ filename_of t in
+  let filename =
+    Option.to_list !Config.file_dir @ [filename_of t]
+    |> Files.concat_segments 
+    |> Option.get
+  in
   debug "Check %s@." @@ subject_of t;
   if not @@ Sys.file_exists filename then
-    let path = input_filename ^ "/" ^ (filename_of t) in
+    let path = 
+      (Option.to_list (copied_relative_path copy_method)) @ [filename_of t]
+      |> Files.concat_segments
+      |> Option.get in
     [if is_dir then Directory_not_found path else File_not_found path]
   else
     items

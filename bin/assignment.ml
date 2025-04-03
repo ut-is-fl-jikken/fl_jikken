@@ -40,6 +40,7 @@ type 'a result =
   | Build_failed
   | Unsupported_week_no of int
   | Zip_failed
+  | No_input_file
   | Unknown_error of string
 
 let is_hatten = function
@@ -102,5 +103,7 @@ let message_of r =
   | Unsupported_week_no n, false -> Printf.sprintf "Not support: Week %d" n
   | Zip_failed, true -> Printf.sprintf "zip コマンドが失敗しました (zip.err を参照してください)"
   | Zip_failed, false -> Printf.sprintf "Command zip failed (See zip.err)"
+  | No_input_file, true -> Printf.sprintf "入力ファイルを提供するか、または `--disable-sandboxing` オプションを指定してください"
+  | No_input_file, false -> Printf.sprintf "Please provide an input file or specify the `--disable-sandboxing` option"
   | Unknown_error s, true -> Printf.sprintf "不明なエラー (%s)" s
   | Unknown_error s, false -> Printf.sprintf "Unknown error (%s)" s

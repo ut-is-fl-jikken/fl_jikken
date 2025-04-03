@@ -18,6 +18,7 @@ let options =
    "-o", Arg.String handle_output, {| The same as --output|};
    "--ci", Arg.Unit (fun () -> handle_check "json"), {| Run in CI mode|};
    "--check", Arg.Int (fun n -> Config.mode := Check n), "<n>  Check the assignment of Week <n> without creating an archive";
+   "--disable-sandboxing", Arg.Set Config.disable_sandboxing, " Disable tmp directory sandboxing";
    "-p", Arg.Int (fun n -> Config.mode := Print_file_struct n), "<n>  Print the file structure for the assignment of Week <n>";
    "-v", Arg.Unit (fun () -> print_version (); exit 0), " Output the version";
    "--swipl", Arg.Set_string Config.swipl, "<command>  Set the path to SWI prolog";

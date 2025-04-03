@@ -7,13 +7,13 @@ let init () =
     Error Version_mismatch
   else
     begin
-      if not @@ Sys.file_exists Config.dir then Sys.mkdir Config.dir 0o755;
+      if Config.sandbox () && not @@ Sys.file_exists Config.dir then Sys.mkdir Config.dir 0o755;
       Ok ()
     end
 
 let finalize () =
   Sys.chdir Config.orig_working;
-  if Sys.file_exists Config.dir then
+  if Config.sandbox () && Sys.file_exists Config.dir then
     Files.remove_rec Config.dir
 
 let show_error_and_exit e =
@@ -152,7 +152,7 @@ let make_archive () =
   let archive = Printf.sprintf "%02d-%s" !Config.no !Config.id in
   let filename = Printf.sprintf "%02d-%s.zip" !Config.no !Config.id in
   Sys.chdir Config.orig_working;
-  Sys.chdir Config.dir;
+  if Config.sandbox () then Sys.chdir Config.dir;
   make_env_file archive;
   let r = Command.run ~filename:"zip" "zip -r %s %s" filename archive in
   if 0 <> r then
@@ -186,11 +186,16 @@ let main () =
 
       Config.no := target_info.week_number;
       Config.id := target_info.id;
-      Check.file_organization filename_info.input_filename target_info.for_dir
+      let copy_method = if target_info.for_dir then
+        Check.Directory { input_dir = filename_info.input_filename }
+      else
+        Check.Unzip { input_filename = filename_info.input_filename }
+      in
+      Check.file_organization copy_method
       |> show_error_and_exit_on_error;
 
       let results = assoc_assignments !Config.no
-                    |> List.map (fun (t,items) -> t, items, Check.file filename_info.input_filename t items)
+                    |> List.map (fun (t,items) -> t, items, Check.file copy_method t items)
       in
       output_results results;
       if not @@ passed_mandatory results then
@@ -206,8 +211,27 @@ let main () =
         (match make_archive () with
          | Some e -> show_error_and_exit e
          | None -> finalize ())
-  | Check _n ->
-      (* todo *)
+  | Check week_number ->
+      let input_filename = !Config.file in
+      let copy_method =
+        if input_filename = "" then
+          if not !Config.disable_sandboxing then
+            show_error_and_exit No_input_file
+          else
+            Check.Never
+        else
+          Check.Directory { input_dir = input_filename }
+      in
+
+      Config.no := week_number;
+      Check.file_organization copy_method
+      |> show_error_and_exit_on_error;
+
+      let results = assoc_assignments week_number
+                    |> List.map (fun (t,items) -> t, items, Check.file copy_method t items)
+      in
+      output_results results;
+
       finalize ()
   | Print_file_struct n ->
       print_file_struct n;
