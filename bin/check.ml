@@ -40,25 +40,21 @@ let analyze_filename s : filename_info =
   in
   { input_filename = s; target }
 
-let check_file_organization (file : filename_info) =
-  match file.target with
-  | None -> Error (File_name_invalid file.input_filename)
-  | Some { id; for_dir; _ } ->
-      Config.id := id;
-      let cmd =
-        if for_dir then
-          Printf.sprintf "cp -r %s %s" file.input_filename Config.dir
-        else
-          Printf.sprintf "unzip -q -d %s %s" Config.dir file.input_filename
+let file_organization input_filename for_dir =
+  let cmd =
+    if for_dir then
+      Printf.sprintf "cp -r %s %s" input_filename Config.dir
+    else
+      Printf.sprintf "unzip -q -d %s %s" Config.dir input_filename
       in
       debug "cmd: %s@." cmd;
       if Sys.command cmd <> 0 then
         Error Cannot_extract
       else
-        let dir = Config.dir ^ "/" ^ Filename.remove_extension @@ Filename.basename file.input_filename in
+        let dir = Config.dir ^ "/" ^ Filename.remove_extension @@ Filename.basename input_filename in
         Config.file_dir := dir;
         if not (Sys.file_exists dir && Sys.is_directory dir) then
-          Error (Directory_not_found (Filename.remove_extension file.input_filename))
+          Error (Directory_not_found (Filename.remove_extension @@ Filename.basename input_filename))
         else if not @@ List.exists (fun ext -> Sys.file_exists (Printf.sprintf "%s/%s.%s" dir Config.report_name ext)) Config.report_exts then
           Error (File_not_found (Config.report_name ^ ".*"))
         else

@@ -16,12 +16,14 @@ let finalize () =
   if Sys.file_exists Config.dir then
     Files.remove_rec Config.dir
 
-let show_error_and_exit = function
+let show_error_and_exit e =
+  Printf.printf "%s\n" (message_of e);
+  finalize ();
+  exit 1
+
+let show_error_and_exit_on_error = function
   | Ok _ -> ()
-  | Error e ->
-      Printf.printf "%s\n" (message_of e);
-      finalize ();
-      exit 1
+  | Error e -> show_error_and_exit e
 
 let show_results oc (t, items, result) =
   Printf.fprintf oc "[%s] " (subject_of t);
@@ -113,8 +115,7 @@ let assoc_assignments n =
   try
     List.assoc n assiginments
   with Not_found ->
-         show_error_and_exit (Error (Unsupported_week_no n));
-         assert false
+         show_error_and_exit (Unsupported_week_no n)
 
 let print_file_struct n =
   let dir = Format.sprintf "%02d-XXXXXX" n in
@@ -171,16 +172,22 @@ let make_archive () =
 let main () =
   (*  *Log.mode := Log.Debug; *)
   init()
-  |> show_error_and_exit;
+  |> show_error_and_exit_on_error;
 
   match !Config.mode with
   | Check_and_zip ->
       (* validate input *)
       if !Config.file = "" then (Printf.printf "%s\n" Command_line.usage; exit 1);
       let filename_info = Check.analyze_filename !Config.file in
+      let target_info = match filename_info.target with
+        | Some target_info -> target_info
+        | None -> show_error_and_exit (File_name_invalid filename_info.input_filename)
+      in
 
-      Check.file_organization filename_info
-      |> show_error_and_exit;
+      Config.no := target_info.week_number;
+      Config.id := target_info.id;
+      Check.file_organization filename_info.input_filename target_info.for_dir
+      |> show_error_and_exit_on_error;
 
       let results = assoc_assignments !Config.no
                     |> List.map (fun (t,items) -> t, items, Check.file t items)
@@ -197,7 +204,7 @@ let main () =
          finalize ())
       else
         (match make_archive () with
-         | Some e -> show_error_and_exit (Error e)
+         | Some e -> show_error_and_exit e
          | None -> finalize ())
   | Check _n ->
       (* todo *)
