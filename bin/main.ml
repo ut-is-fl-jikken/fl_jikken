@@ -178,7 +178,7 @@ let main () =
   | Check_and_zip ->
       (* validate input *)
       if !Config.file = "" then (Printf.printf "%s\n" Command_line.usage; exit 1);
-      let filename_info = Check.analyze_filename !Config.file in
+      let filename_info = Check.filename !Config.file in
       let target_info = match filename_info.target with
         | Some target_info -> target_info
         | None -> show_error_and_exit (File_name_invalid filename_info.input_filename)

@@ -12,7 +12,7 @@ type filename_info = {
   target : target_info option;
 }
 
-let analyze_filename s : filename_info =
+let filename s : filename_info =
   let for_dir = Sys.is_directory s in
   let ext = if for_dir then None else Some "zip" in
   let ext_removed = match ext with
@@ -333,7 +333,7 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
       r
 
 
-let check_file t items =
+let file t items =
   let is_dir = is_directory t in
   let filename = !Config.file_dir ^ "/" ^ filename_of t in
   debug "Check %s@." @@ subject_of t;
@@ -343,7 +343,3 @@ let check_file t items =
   else
     items
     |> List.concat_map (check_item ~is_dir filename)
-
-
-let file_organization = check_file_organization
-let file = check_file
