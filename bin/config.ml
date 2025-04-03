@@ -1,6 +1,6 @@
 let version = "v2024.4"
 let no = ref 0
-let ocaml_version = "5.1.0"
+let ocaml_version = "5.1.1"
 let orig_working = Sys.getcwd()
 let dir = "_fl_tmp_" ^ Util.Unix.string_of_time()
 let file_dir = ref ""

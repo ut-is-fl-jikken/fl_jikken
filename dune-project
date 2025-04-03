@@ -10,7 +10,7 @@
  (name fl_jikken)
  (synopsis "Check program for FL jikken")
  (depends
-  (ocaml (= 5.1.0))
+  (ocaml (= 5.1.1))
    ocamlfind
    dune
    batteries
