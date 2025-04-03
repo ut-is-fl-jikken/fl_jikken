@@ -333,12 +333,12 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
       r
 
 
-let file t items =
+let file input_filename t items =
   let is_dir = is_directory t in
   let filename = !Config.file_dir ^ "/" ^ filename_of t in
   debug "Check %s@." @@ subject_of t;
   if not @@ Sys.file_exists filename then
-    let path = Printf.sprintf "%02d-%s/%s" !Config.no !Config.id (filename_of t) in
+    let path = input_filename ^ "/" ^ (filename_of t) in
     [if is_dir then Directory_not_found path else File_not_found path]
   else
     items

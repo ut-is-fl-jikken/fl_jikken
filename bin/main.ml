@@ -190,7 +190,7 @@ let main () =
       |> show_error_and_exit_on_error;
 
       let results = assoc_assignments !Config.no
-                    |> List.map (fun (t,items) -> t, items, Check.file t items)
+                    |> List.map (fun (t,items) -> t, items, Check.file filename_info.input_filename t items)
       in
       output_results results;
       if not @@ passed_mandatory results then
