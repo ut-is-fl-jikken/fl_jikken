@@ -11,6 +11,7 @@ depends: [
   "ocamlfind"
   "dune" {>= "3.15"}
   "batteries"
+  "yojson"
   "odoc" {with-doc}
 ]
 build: [

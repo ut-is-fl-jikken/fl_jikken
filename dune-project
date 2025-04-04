@@ -14,4 +14,5 @@
    ocamlfind
    dune
    batteries
+   yojson
 ))
