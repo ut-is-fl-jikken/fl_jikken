@@ -41,34 +41,36 @@ let filename s : filename_info =
   in
   { input_filename = s; target }
 
-type file_copy_method =
-  | Never
-  | Directory of { input_dir: string }
-  | Unzip of { input_filename: string }
-let copied_relative_path copy_method =
-  begin match copy_method with
-    | Never -> None
-    | Directory { input_dir } -> Some input_dir
-    | Unzip { input_filename } -> Some input_filename
-  end
-  |> Option.map (fun input_filename -> Filename.remove_extension @@ Filename.basename input_filename)
+module Extract = struct
+  type kind =
+    | Never
+    | Directory of { input_dir: string }
+    | Unzip of { input_filename: string }
+  let copied_relative_path kind =
+    begin match kind with
+      | Never -> None
+      | Directory { input_dir } -> Some input_dir
+      | Unzip { input_filename } -> Some input_filename
+    end
+    |> Option.map (fun input_filename -> Filename.remove_extension @@ Filename.basename input_filename)
+end
 
-let file_organization copy_method =
+let file_organization extract =
   let (let*) o f =
     match o with
     | None -> Ok ()
     | Some x -> f x
   in
   let* cmd =
-    match copy_method with
-    | Never ->
+    match extract with
+    | Extract.Never ->
       None
     | Directory { input_dir } ->
       Option.some @@ Printf.sprintf "cp -r %s %s" input_dir Config.dir
     | Unzip { input_filename } ->
       Option.some @@ Printf.sprintf "unzip -q -d %s %s" Config.dir input_filename
   in
-  let copied_relative = copied_relative_path copy_method in
+  let copied_relative = Extract.copied_relative_path extract in
   debug "cmd: %s@." cmd;
   if Sys.command cmd <> 0 then
     Error Cannot_extract
@@ -360,7 +362,7 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
       r
 
 
-let file copy_method { kind; items; _ } =
+let file extract { kind; items; _ } =
   let is_dir = is_directory kind in
   let open Target in
   let options = options kind in
@@ -372,7 +374,7 @@ let file copy_method { kind; items; _ } =
   match paths |> List.find_opt Sys.file_exists with
     | None ->
       let path =
-        match copied_relative_path copy_method with
+        match Extract.copied_relative_path extract with
         | None -> show options
         | Some copied_relative_path ->
           Filename.concat copied_relative_path (show options)

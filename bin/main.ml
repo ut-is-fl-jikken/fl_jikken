@@ -159,9 +159,9 @@ let main () =
       Config.no := target_info.week_number;
       Config.id := target_info.id;
       let copy_method = if target_info.for_dir then
-        Check.Directory { input_dir = filename_info.input_filename }
+        Check.Extract.Directory { input_dir = filename_info.input_filename }
       else
-        Check.Unzip { input_filename = filename_info.input_filename }
+        Check.Extract.Unzip { input_filename = filename_info.input_filename }
       in
       Check.file_organization copy_method
       |> show_error_and_exit_on_error;
@@ -190,9 +190,9 @@ let main () =
           if not !Config.disable_sandboxing then
             show_error_and_exit No_input_file
           else
-            Check.Never
+            Check.Extract.Never
         else
-          Check.Directory { input_dir = input_filename }
+          Check.Extract.Directory { input_dir = input_filename }
       in
 
       Config.no := week_number;
