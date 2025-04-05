@@ -1,5 +1,8 @@
 open Assignment_types
 
+let report = { kind = Report; items = [] }
+let toi n items = { kind = Toi(Dir, n); items }
+
 let may_be_included =
   ["constraintSolver.cmi";
    "constraintSolver.cmo";
@@ -7,4 +10,5 @@ let may_be_included =
    "tySyntax.cmo"]
 
 let assignments =
-  [Toi(Dir, 1), [Build(None, may_be_included)]]
+  [report;
+   toi 1 [Build(None, may_be_included)]]

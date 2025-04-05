@@ -1,7 +1,9 @@
-type t =
-  | Toi of kind * int
-  | Hatten of kind * int
-and kind = Dir | ML | Prolog
+type submission_kind = Dir | ML | Prolog
+
+type kind =
+  | Report
+  | Toi of submission_kind * int
+  | Hatten of submission_kind * int
 
 type item =
   (* Items for OCaml files *)
@@ -20,6 +22,11 @@ type item =
   | Predicate of string * int (* Check the existence of a predicate *)
   | Query of string * string list (* Check a query *)
 
+type t = {
+  kind  : kind;
+  items : item list;
+}
+
 let is_hatten = function
   | Hatten (_, _) -> true
   | _ -> false
@@ -30,16 +37,10 @@ let is_directory = function
   | Toi(Dir, _) | Hatten(Dir, _) -> true
   | _ -> false
 
-let filename_of = function
-  | Toi(ML, n) -> Printf.sprintf "toi%d.ml" n
-  | Toi(Prolog, n) -> Printf.sprintf "toi%d.pl" n
-  | Toi(Dir, n) -> Printf.sprintf "toi%d" n
-  | Hatten(ML, n) -> Printf.sprintf "hatten%d.ml" n
-  | Hatten(Prolog, n) -> Printf.sprintf "hatten%d.pl" n
-  | Hatten(Dir, n) -> Printf.sprintf "hatten%d" n
-
 let subject_of t =
   match t, !Config.jp with
+  | Report, true -> "レポート"
+  | Report, false -> "Report"
   | Toi(_, n), true -> "問" ^ string_of_int n
   | Toi(_, n), false -> "Toi " ^ string_of_int n
   | Hatten(_, n), true -> "発展" ^ string_of_int n
@@ -47,5 +48,6 @@ let subject_of t =
 
 let subject_id_of t =
   match t with
+  | Report -> "report"
   | Toi(_, n) -> "toi" ^ string_of_int n
   | Hatten(_, n) -> "hatten" ^ string_of_int n

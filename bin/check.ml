@@ -85,8 +85,6 @@ let file_organization copy_method =
           | Some dir ->
             if not (Sys.file_exists dir && Sys.is_directory dir) then
               Error (Directory_not_found (Option.value copied_relative ~default:(failwith "unreachable because of `mkdir Config.dir`")))
-            else if not @@ List.exists (fun ext -> Sys.file_exists (Printf.sprintf "%s/%s.%s" dir Config.report_name ext)) Config.report_exts then
-              Error (File_not_found (Config.report_name ^ ".*"))
             else
               Ok ()
 
@@ -363,20 +361,24 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
       r
 
 
-let file copy_method t items =
-  let is_dir = is_directory t in
-  let filename =
-    Option.to_list !Config.file_dir @ [filename_of t]
-    |> Files.concat_segments 
-    |> Option.get
+let file copy_method { kind; items; _ } =
+  let is_dir = is_directory kind in
+  let open Target in
+  let options = options kind in
+  let paths =
+    Files.product_segments @@
+    [Option.value ~default:"" (!Config.file_dir)] :: [iter options]
   in
-  debug "Check %s@." @@ subject_of t;
-  if not @@ Sys.file_exists filename then
-    let path = 
-      (Option.to_list (copied_relative_path copy_method)) @ [filename_of t]
-      |> Files.concat_segments
-      |> Option.get in
-    [if is_dir then Directory_not_found path else File_not_found path]
-  else
-    items
-    |> List.concat_map (check_item ~is_dir filename)
+  debug "Check %s@." @@ subject_of kind;
+  match paths |> List.find_opt Sys.file_exists with
+    | None ->
+      let path =
+        match copied_relative_path copy_method with
+        | None -> show options
+        | Some copied_relative_path ->
+          Filename.concat copied_relative_path (show options)
+      in
+      [if is_dir then Directory_not_found path else File_not_found path]
+    | Some path ->
+      items
+      |> List.concat_map (check_item ~is_dir path)

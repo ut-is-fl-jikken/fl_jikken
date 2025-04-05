@@ -1,12 +1,14 @@
 open Assignment_types
 
-let toi n = Toi(Prolog, n)
+let report = { kind = Report; items = [] }
+let toi n items = { kind = Toi(Prolog, n); items }
 
 let assignments =
-  [toi 1, [Predicate("bloodrelative", 2)];
-   toi 2, [Predicate("mult", 3)];
-   toi 3, [Predicate("reverse", 2);
-           Query("reverse([1,2,3],X),write(X).", ["[3,2,1]"]);
-           Predicate("concat", 2);
-           Query("concat([[1],[2,3]],X),write(X).", ["[1,2,3]"])];
-   toi 4, [Predicate("hamilton", 2)]]
+  [report;
+   toi 1 [Predicate("bloodrelative", 2)];
+   toi 2 [Predicate("mult", 3)];
+   toi 3 [Predicate("reverse", 2);
+          Query("reverse([1,2,3],X),write(X).", ["[3,2,1]"]);
+          Predicate("concat", 2);
+          Query("concat([[1],[2,3]],X),write(X).", ["[1,2,3]"])];
+   toi 4 [Predicate("hamilton", 2)]]

@@ -12,11 +12,11 @@ let init () =
       Ok ()
     end
 
-let show_results oc (t, items, result) =
-  Printf.fprintf oc "[%s] " (subject_of t);
+let show_results oc (t, result) =
+  Printf.fprintf oc "[%s] " (subject_of t.kind);
   if List.for_all (function OK _ -> true | _ -> false) result then
     let r = List.filter_map (function OK s -> s | _ -> None) result in
-    let is_opt = items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) items in
+    let is_opt = t.items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) t.items in
     match r, is_opt, !Config.jp with
     | [], true, true -> Printf.fprintf oc "%s" (Util.TColor.red "NG:" ^ "答えが見つかりません")
     | [], true, false -> Printf.fprintf oc "%s" (Util.TColor.red "NG:" ^ " No solution found")
@@ -31,11 +31,11 @@ let show_results oc (t, items, result) =
     |> Printf.fprintf oc "%s %s" (Util.TColor.red "NG:");
   Printf.fprintf oc "\n"
 
-let pack_results (t, items, result) =
+let pack_results (t, result) =
   let errors =
     if List.for_all (function OK _ -> true | _ -> false) result then
       let r = List.filter_map (function OK s -> s | _ -> None) result in
-      let is_opt = items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) items in
+      let is_opt = t.items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) t.items in
       match r, is_opt, !Config.jp with
       | [], true, true -> ["答えが見つかりません"]
       | [], true, false -> ["No solution found"]
@@ -48,7 +48,7 @@ let pack_results (t, items, result) =
       |> List.unique
   in
   `Assoc [
-    ("id", `String (subject_id_of t));
+    ("id", `String (subject_id_of t.kind));
     ("is_ok", `Bool (List.is_empty errors));
     ("errors", `List (errors |> List.map (fun s -> `String s)));
   ]
@@ -79,28 +79,35 @@ let output_results results =
 
 let rec passed_mandatory = function
   | [] -> true
-  | (t, _, result) :: xs ->
-      List.for_all (function OK _ -> true | _ -> is_optional t) result
+  | (t, result) :: xs ->
+      List.for_all (function OK _ -> true | _ -> is_optional t.kind) result
       && passed_mandatory xs
 
 let print_file_struct n =
   let dir = Format.sprintf "%02d-XXXXXX" n in
-  let assignment_ids = assoc n |> List.map fst
+  let assignment_ids = assoc n |> List.map (fun t -> t.kind)
   in
-  let report =
-    Printf.sprintf "%s.{%s}" Config.report_name (String.concat "|" Config.report_exts)
-  in
-  let pr t =
-    let f = filename_of t in
-    if is_directory t then
-      (Printf.printf "├── %s\n" f;
-       Printf.printf "│   └── ...\n")
+  let print is_final t =
+    let f = Target.show (options t) in
+    if is_final then
+      if is_directory t then
+        (Printf.printf "└── %s\n" f;
+        Printf.printf "    └── ...\n")
+      else
+        Printf.printf "└── %s\n" f
     else
-      Printf.printf "├── %s\n" f
+      if is_directory t then
+        (Printf.printf "├── %s\n" f;
+        Printf.printf "│   └── ...\n")
+      else
+        Printf.printf "├── %s\n" f
   in
   Printf.printf "%s\n" dir;
-  List.iter pr assignment_ids;
-  Printf.printf "└── %s\n" report
+  let rev = List.rev assignment_ids in
+  let last = List.hd rev in
+  let assignment_ids = List.rev (List.tl rev) in
+  List.iter (print false) assignment_ids;
+  print true last
 
 let make_env_file archive =
   (* This should go to the Util Module *)
@@ -160,7 +167,7 @@ let main () =
       |> show_error_and_exit_on_error;
 
       let results = assoc !Config.no
-                    |> List.map (fun (t,items) -> t, items, Check.file copy_method t items)
+                    |> List.map (fun t -> t, Check.file copy_method t)
       in
       output_results results;
       if not @@ passed_mandatory results then
@@ -193,7 +200,7 @@ let main () =
       |> show_error_and_exit_on_error;
 
       let results = assoc week_number
-                    |> List.map (fun (t,items) -> t, items, Check.file copy_method t items)
+                    |> List.map (fun t -> t, Check.file copy_method t)
       in
       output_results results;
 

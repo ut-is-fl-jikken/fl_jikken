@@ -1,7 +1,8 @@
 open Assignment_types
 
-let toi n = Toi(Dir, n)
-let hatten n = Hatten(Dir, n)
+let report = { kind = Report; items = [] }
+let toi n items = { kind = Toi(Dir, n); items }
+let hatten n items = { kind = Hatten(Dir, n); items }
 
 let exec_2_1 = Exec ["(1+2)/3-4;;", "# - = -3"]
 let exec_2_2 = Exec ["4*3 < 2-1;;", "# - = false"]
@@ -21,10 +22,11 @@ let exec_h3_2 = Exec ["let x = 10;;",                          "# val x = 10";
 let build = Build(None, [])
 
 let assignments =
-  [toi 1, [];
-   toi 2, [build; exec_2_1; exec_2_2];
-   toi 3, [build; exec_3];
-   toi 4, [build; exec_2_1; exec_2_2; exec_3; exec_4_1; exec_4_2];
-   hatten 1, [build];
-   hatten 2, [build; exec_h2];
-   hatten 3, [build; exec_h3_1; exec_h3_2]]
+  [report;
+   toi 1 [];
+   toi 2 [build; exec_2_1; exec_2_2];
+   toi 3 [build; exec_3];
+   toi 4 [build; exec_2_1; exec_2_2; exec_3; exec_4_1; exec_4_2];
+   hatten 1 [build];
+   hatten 2 [build; exec_h2];
+   hatten 3 [build; exec_h3_1; exec_h3_2]]
