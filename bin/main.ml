@@ -119,22 +119,21 @@ let assoc_assignments n =
 
 let print_file_struct n =
   let dir = Format.sprintf "%02d-XXXXXX" n in
-  let files =
-    assoc_assignments n
-    |> List.map (fst |- filename_of)
+  let assignment_ids = assoc_assignments n |> List.map fst
   in
   let report =
     Printf.sprintf "%s.{%s}" Config.report_name (String.concat "|" Config.report_exts)
   in
-  let pr f =
-    if Filename.remove_extension f = f then
+  let pr t =
+    let f = filename_of t in
+    if is_directory t then
       (Printf.printf "├── %s\n" f;
        Printf.printf "│   └── ...\n")
     else
       Printf.printf "├── %s\n" f
   in
   Printf.printf "%s\n" dir;
-  List.iter pr files;
+  List.iter pr assignment_ids;
   Printf.printf "└── %s\n" report
 
 let make_env_file archive =
