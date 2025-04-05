@@ -1,4 +1,4 @@
-open Assignment
+open Assignment_types
 
 let build = Build(None, [])
 

@@ -1,5 +1,6 @@
 open Util
 open Assignment
+open Error
 
 let init () =
   Command_line.parse();
@@ -10,20 +11,6 @@ let init () =
       if Config.sandbox () && not @@ Sys.file_exists Config.dir then Sys.mkdir Config.dir 0o755;
       Ok ()
     end
-
-let finalize () =
-  Sys.chdir Config.orig_working;
-  if Config.sandbox () && Sys.file_exists Config.dir then
-    Files.remove_rec Config.dir
-
-let show_error_and_exit e =
-  Printf.printf "%s\n" (message_of e);
-  finalize ();
-  exit 1
-
-let show_error_and_exit_on_error = function
-  | Ok _ -> ()
-  | Error e -> show_error_and_exit e
 
 let show_results oc (t, items, result) =
   Printf.fprintf oc "[%s] " (subject_of t);
@@ -96,30 +83,9 @@ let rec passed_mandatory = function
       List.for_all (function OK _ -> true | _ -> is_optional t) result
       && passed_mandatory xs
 
-let assiginments =
-  [ 1, Week01.assignments;
-    2, Week02.assignments;
-    3, Week03.assignments;
-    4, Week04.assignments;
-    5, Week05.assignments;
-    6, Week06.assignments;
-    7, Week07.assignments;
-    8, Week08.assignments;
-    9, Week09.assignments;
-   10, Week10.assignments;
-   11, Week11.assignments;
-   12, Week12.assignments;
-   13, []]
-
-let assoc_assignments n =
-  try
-    List.assoc n assiginments
-  with Not_found ->
-         show_error_and_exit (Unsupported_week_no n)
-
 let print_file_struct n =
   let dir = Format.sprintf "%02d-XXXXXX" n in
-  let assignment_ids = assoc_assignments n |> List.map fst
+  let assignment_ids = assoc n |> List.map fst
   in
   let report =
     Printf.sprintf "%s.{%s}" Config.report_name (String.concat "|" Config.report_exts)
@@ -193,7 +159,7 @@ let main () =
       Check.file_organization copy_method
       |> show_error_and_exit_on_error;
 
-      let results = assoc_assignments !Config.no
+      let results = assoc !Config.no
                     |> List.map (fun (t,items) -> t, items, Check.file copy_method t items)
       in
       output_results results;
@@ -226,7 +192,7 @@ let main () =
       Check.file_organization copy_method
       |> show_error_and_exit_on_error;
 
-      let results = assoc_assignments week_number
+      let results = assoc week_number
                     |> List.map (fun (t,items) -> t, items, Check.file copy_method t items)
       in
       output_results results;

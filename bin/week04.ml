@@ -1,4 +1,4 @@
-open Assignment
+open Assignment_types
 
 let toi n = Toi(ML, n)
 let hatten n = Hatten(ML, n)

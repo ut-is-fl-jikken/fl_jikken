@@ -1,4 +1,4 @@
-open Assignment
+open Assignment_types
 
 let ty =  TypeDef(0, "ty")
 let subst = TypeDef(0, "subst")

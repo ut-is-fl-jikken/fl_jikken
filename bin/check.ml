@@ -1,5 +1,6 @@
 open Util
 open Assignment
+open Error
 
 type target_info = {
   week_number : int;

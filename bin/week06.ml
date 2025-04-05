@@ -1,4 +1,4 @@
-open Assignment
+open Assignment_types
 
 let toi n = Toi(Dir, n)
 let hatten n = Hatten(Dir, n)
