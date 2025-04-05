@@ -93,7 +93,7 @@ let output_results results =
 let rec passed_mandatory = function
   | [] -> true
   | (t, _, result) :: xs ->
-      List.for_all (function OK _ -> true | _ -> is_hatten t) result
+      List.for_all (function OK _ -> true | _ -> is_optional t) result
       && passed_mandatory xs
 
 let assiginments =

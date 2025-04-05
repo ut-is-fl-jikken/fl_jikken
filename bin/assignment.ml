@@ -47,6 +47,8 @@ let is_hatten = function
   | Hatten (_, _) -> true
   | _ -> false
 
+let is_optional = is_hatten
+
 let is_directory = function
   | Toi(Dir, _) | Hatten(Dir, _) -> true
   | _ -> false
