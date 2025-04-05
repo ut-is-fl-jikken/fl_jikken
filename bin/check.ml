@@ -54,7 +54,12 @@ let copied_relative_path copy_method =
   |> Option.map (fun input_filename -> Filename.remove_extension @@ Filename.basename input_filename)
 
 let file_organization copy_method =
-  let cmd =
+  let (let*) o f =
+    match o with
+    | None -> Ok ()
+    | Some x -> f x
+  in
+  let* cmd =
     match copy_method with
     | Never ->
       None
@@ -64,29 +69,23 @@ let file_organization copy_method =
       Option.some @@ Printf.sprintf "unzip -q -d %s %s" Config.dir input_filename
   in
   let copied_relative = copied_relative_path copy_method in
-  match cmd with
-    | None -> Ok ()
-    | Some cmd ->
-      debug "cmd: %s@." cmd;
-      if Sys.command cmd <> 0 then
-        Error Cannot_extract
+  debug "cmd: %s@." cmd;
+  if Sys.command cmd <> 0 then
+    Error Cannot_extract
+  else
+    let segments = Option.to_list copied_relative in
+    let segments =
+      if Config.sandbox () then
+        Config.dir :: segments
       else
-        let segments = Option.to_list copied_relative in
-        let segments =
-          if Config.sandbox () then
-            Config.dir :: segments
-          else
-            segments
-        in
-        let dir = Files.concat_segments segments in
-        Config.file_dir := dir;
-        match dir with
-          | None -> Ok ()
-          | Some dir ->
-            if not (Sys.file_exists dir && Sys.is_directory dir) then
-              Error (Directory_not_found (Option.value copied_relative ~default:(failwith "unreachable because of `mkdir Config.dir`")))
-            else
-              Ok ()
+        segments
+    in
+    let* dir = Files.concat_segments segments in
+    Config.file_dir := Some dir;
+    if not (Sys.file_exists dir && Sys.is_directory dir) then
+      Error (Directory_not_found (Option.value copied_relative ~default:(failwith "unreachable because of `mkdir Config.dir`")))
+    else
+      Ok ()
 
 let count_leading_spaces s =
   let rec loop i c s =
