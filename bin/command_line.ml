@@ -44,6 +44,6 @@ let set_file filename =
     end;
   Config.file := filename
 
-let usage = Printf.sprintf "Usage: fl_jikken XX-YYYYYY.zip"
+let usage = Printf.sprintf "Usage: fl_jikken [path-to-submission] --check [week-number]"
 
 let parse () = Arg.parse (Arg.align options) set_file usage

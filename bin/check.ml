@@ -42,52 +42,65 @@ let filename s : filename_info =
   { input_filename = s; target }
 
 module Extract = struct
+  type base =
+    | Tmpdir
+    | Cwd
   type kind =
-    | Never
-    | Directory of { input_dir: string }
-    | Unzip of { input_filename: string }
-  let copied_relative_path kind =
-    begin match kind with
-      | Never -> None
-      | Directory { input_dir } -> Some input_dir
-      | Unzip { input_filename } -> Some input_filename
-    end
-    |> Option.map (fun input_filename -> Filename.remove_extension @@ Filename.basename input_filename)
+    | Never of { input_dir: string; base: base }
+    | Directory of { input_dir: string; base: base }
+    | Unzip of { input_filename: string; base: base }
+  let extracted_relative_path = function
+    | Never { base = Tmpdir; _ } -> None
+    | Never { base = Cwd; input_dir } -> Some input_dir
+    | Directory { input_dir; _ } -> Some (Filename.basename input_dir)
+    | Unzip { input_filename; _ } -> Some (Filename.remove_extension @@ Filename.basename input_filename)
 end
 
 let file_organization extract =
-  let (let*) o f =
+  let cmd =
+    match extract with
+    | Extract.Never _ ->
+      None
+    | Directory { input_dir; base = Tmpdir } ->
+      Option.some @@ Printf.sprintf "cp -r %s %s" input_dir Config.dir
+    | Directory { input_dir; base = Cwd } ->
+      Option.some @@ Printf.sprintf "cp -r %s ." input_dir
+    | Unzip { input_filename; base = Tmpdir } ->
+      Option.some @@ Printf.sprintf "unzip -q -d %s %s" Config.dir input_filename
+    | Unzip { input_filename; base = Cwd } ->
+      Option.some @@ Printf.sprintf "unzip -q %s" input_filename
+  in
+  let (let*) = Result.bind in
+  let (let**) o f =
     match o with
     | None -> Ok ()
     | Some x -> f x
   in
-  let* cmd =
-    match extract with
-    | Extract.Never ->
-      None
-    | Directory { input_dir } ->
-      Option.some @@ Printf.sprintf "cp -r %s %s" input_dir Config.dir
-    | Unzip { input_filename } ->
-      Option.some @@ Printf.sprintf "unzip -q -d %s %s" Config.dir input_filename
-  in
-  let copied_relative = Extract.copied_relative_path extract in
-  debug "cmd: %s@." cmd;
-  if Sys.command cmd <> 0 then
-    Error Cannot_extract
-  else
-    let segments = Option.to_list copied_relative in
-    let segments =
-      if Config.sandbox () then
-        Config.dir :: segments
-      else
-        segments
-    in
-    let* dir = Files.concat_segments segments in
-    Config.file_dir := Some dir;
-    if not (Sys.file_exists dir && Sys.is_directory dir) then
-      Error (Directory_not_found (Option.value copied_relative ~default:(failwith "unreachable because of `mkdir Config.dir`")))
+  let* () =
+    let** cmd = cmd in
+    debug "cmd: %s@." cmd;
+    if Sys.command cmd <> 0 then
+      Error Cannot_extract
     else
       Ok ()
+  in
+  let* extracted_relative =
+    match Extract.extracted_relative_path extract with
+    | None -> Error Cannot_extract
+    | Some x -> Ok x
+  in
+  let segments =
+    if Config.sandbox () then
+      Config.dir :: [extracted_relative]
+    else
+      [extracted_relative]
+  in
+  let** dir = Files.concat_segments segments in
+  Config.file_dir := Some dir;
+  if not (Sys.file_exists dir && Sys.is_directory dir) then
+    Error (Directory_not_found extracted_relative)
+  else
+    Ok ()
 
 let count_leading_spaces s =
   let rec loop i c s =
@@ -374,7 +387,7 @@ let file extract { kind; items; _ } =
   match paths |> List.find_opt Sys.file_exists with
     | None ->
       let path =
-        match Extract.copied_relative_path extract with
+        match Extract.extracted_relative_path extract with
         | None -> show options
         | Some copied_relative_path ->
           Filename.concat copied_relative_path (show options)

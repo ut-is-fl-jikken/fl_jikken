@@ -158,10 +158,12 @@ let main () =
 
       Config.no := target_info.week_number;
       Config.id := target_info.id;
-      let copy_method = if target_info.for_dir then
-        Check.Extract.Directory { input_dir = filename_info.input_filename }
-      else
-        Check.Extract.Unzip { input_filename = filename_info.input_filename }
+      let copy_method =
+        let base = if Config.sandbox () then Check.Extract.Tmpdir else Cwd in
+        if target_info.for_dir then
+          Check.Extract.Directory { input_dir = filename_info.input_filename; base }
+        else
+          Check.Extract.Unzip { input_filename = filename_info.input_filename; base }
       in
       Check.file_organization copy_method
       |> show_error_and_exit_on_error;
@@ -186,13 +188,14 @@ let main () =
   | Check week_number ->
       let input_filename = !Config.file in
       let copy_method =
-        if input_filename = "" then
-          if not !Config.disable_sandboxing then
+        let base = if Config.sandbox () then Check.Extract.Tmpdir else Cwd in
+        if !Config.disable_sandboxing then
+          Check.Extract.Never { input_dir = input_filename; base }
+        else
+          if input_filename = "" then
             show_error_and_exit No_input_file
           else
-            Check.Extract.Never
-        else
-          Check.Extract.Directory { input_dir = input_filename }
+            Check.Extract.Directory { input_dir = input_filename; base }
       in
 
       Config.no := week_number;
