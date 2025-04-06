@@ -186,16 +186,19 @@ let main () =
          | Some e -> show_error_and_exit e
          | None -> finalize ())
   | Check week_number ->
+      let apply_default_filename s =
+        if s = "" then "." else s
+      in
       let input_filename = !Config.file in
       let copy_method =
         let base = if Config.sandbox () then Check.Extract.Tmpdir else Cwd in
         if !Config.disable_sandboxing then
-          Check.Extract.Never { input_dir = input_filename; base }
+          Check.Extract.Never { input_dir = apply_default_filename input_filename; base }
         else
           if input_filename = "" then
             show_error_and_exit No_input_file
           else
-            Check.Extract.Directory { input_dir = input_filename; base }
+            Check.Extract.Directory { input_dir = apply_default_filename input_filename; base }
       in
 
       Config.no := week_number;
