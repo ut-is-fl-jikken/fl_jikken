@@ -1,7 +1,6 @@
 open Assignment_types
-
-let report = { kind = Report; items = [] }
-let toi n items = { kind = Toi(Dir, n); items }
+open Edsl
+open Interpreter
 
 let may_be_included =
   ["constraintSolver.cmi";

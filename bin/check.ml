@@ -375,15 +375,15 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
       r
 
 
-let file extract { kind; items; _ } =
-  let is_dir = is_directory kind in
+let file extract t =
+  let is_dir = is_directory t.kind in
   let open Target in
-  let options = options kind in
+  let options = options t in
   let paths =
     Files.product_segments @@
     [Option.value ~default:"" (!Config.file_dir)] :: [iter options]
   in
-  debug "Check %s@." @@ subject_of kind;
+  debug "Check %s@." @@ subject_of t.kind;
   match paths |> List.find_opt Sys.file_exists with
     | None ->
       let path =
@@ -394,5 +394,5 @@ let file extract { kind; items; _ } =
       in
       [if is_dir then Directory_not_found path else File_not_found path]
     | Some path ->
-      items
+      t.items
       |> List.concat_map (check_item ~is_dir path)

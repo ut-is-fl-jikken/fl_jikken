@@ -1,8 +1,6 @@
 open Assignment_types
-
-let report = { kind = Report; items = [] }
-let toi n items = { kind = Toi(ML, n); items }
-let hatten n items = { kind = Hatten(ML, n); items }
+open Edsl
+open Ml
 
 let assignments =
   [report;

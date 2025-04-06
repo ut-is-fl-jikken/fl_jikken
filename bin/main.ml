@@ -85,29 +85,33 @@ let rec passed_mandatory = function
 
 let print_file_struct n =
   let dir = Format.sprintf "%02d-XXXXXX" n in
-  let assignment_ids = assoc n |> List.map (fun t -> t.kind)
+  let assignments = assoc n
   in
   let print is_final t =
     let f = Target.show (options t) in
     if is_final then
-      if is_directory t then
+      if is_directory t.kind then
         (Printf.printf "└── %s\n" f;
         Printf.printf "    └── ...\n")
       else
         Printf.printf "└── %s\n" f
     else
-      if is_directory t then
+      if is_directory t.kind then
         (Printf.printf "├── %s\n" f;
         Printf.printf "│   └── ...\n")
       else
         Printf.printf "├── %s\n" f
   in
   Printf.printf "%s\n" dir;
-  let rev = List.rev assignment_ids in
-  let last = List.hd rev in
-  let assignment_ids = List.rev (List.tl rev) in
-  List.iter (print false) assignment_ids;
-  print true last
+  if not @@ List.is_empty assignments then
+    let assignments, last =
+      let rev = List.rev assignments in
+      List.rev (List.tl rev), List.hd rev
+    in
+    List.iter (print false) assignments;
+    print true last
+  else
+    Printf.printf "└── (empty)\n"
 
 let make_env_file archive =
   (* This should go to the Util Module *)

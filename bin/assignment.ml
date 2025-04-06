@@ -26,27 +26,46 @@ module Target = struct
   type t =
     | Exact of string
     | Suffix of { body: string; suffix: string list }
+    | Alt of { main: t; alternative: t list }
 
-  let iter = function
+  let rec iter = function
     | Exact s -> [s]
     | Suffix { body; suffix } ->
         suffix
         |> List.map (Printf.sprintf "%s.%s" body)
+    | Alt { main; alternative } ->
+        let main = iter main in
+        let alternative = List.concat_map iter alternative in
+        main @ alternative
 
-  let show = function
+  let rec show = function
     | Exact s -> s
     | Suffix { body; suffix } ->
         Printf.sprintf "%s.%s" body @@
         if List.length suffix > 1
         then Printf.sprintf "{%s}" (String.concat "|" suffix)
         else List.hd suffix
+    | Alt { main; alternative } ->
+        let main = show main in
+        let alternative = List.map show alternative in
+        Printf.sprintf "%s (otherwise %s)" main @@
+        String.concat ", " alternative
+
 end
 
-let options = function
-  | Report -> Target.Suffix { body = Config.report_name; suffix = Config.report_exts }
-  | Toi(ML, n) -> Exact (Printf.sprintf "toi%d.ml" n)
-  | Toi(Prolog, n) -> Exact (Printf.sprintf "toi%d.pl" n)
-  | Toi(Dir, n) -> Exact (Printf.sprintf "toi%d" n)
-  | Hatten(ML, n) -> Exact (Printf.sprintf "hatten%d.ml" n)
-  | Hatten(Prolog, n) -> Exact (Printf.sprintf "hatten%d.pl" n)
-  | Hatten(Dir, n) -> Exact (Printf.sprintf "hatten%d" n)
+let options t =
+  let options_of_kind = function
+    | Report -> Target.Suffix { body = Config.report_name; suffix = Config.report_exts }
+    | Toi(ML, n) -> Exact (Printf.sprintf "toi%d.ml" n)
+    | Toi(Prolog, n) -> Exact (Printf.sprintf "toi%d.pl" n)
+    | Toi(Dir, n) -> Exact (Printf.sprintf "toi%d" n)
+    | Hatten(ML, n) -> Exact (Printf.sprintf "hatten%d.ml" n)
+    | Hatten(Prolog, n) -> Exact (Printf.sprintf "hatten%d.pl" n)
+    | Hatten(Dir, n) -> Exact (Printf.sprintf "hatten%d" n)
+  in
+  match t.alternative with
+  | Some alt when List.length alt <> 0 ->
+      Target.Alt { main = options_of_kind t.kind;
+                   alternative = List.map options_of_kind alt }
+  | _ ->
+      options_of_kind t.kind

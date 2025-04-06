@@ -1,7 +1,6 @@
 open Assignment_types
-
-let report = { kind = Report; items = [] }
-let toi n items = { kind = Toi(Prolog, n); items }
+open Edsl
+open Prolog
 
 let assignments =
   [report;

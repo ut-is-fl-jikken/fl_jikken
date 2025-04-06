@@ -1,10 +1,6 @@
 open Assignment_types
-
-let report = { kind = Report; items = [] }
-let build = Build(None, [])
-
-let toi n items = { kind = Toi(Dir, n); items }
-let hatten n items = { kind = Hatten(Dir, n); items }
+open Edsl
+open Interpreter
 
 let assignments =
   [report;
