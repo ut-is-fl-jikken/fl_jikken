@@ -39,7 +39,7 @@ let is_directory = function
   | _ -> false
 
 let subject_of t =
-  match t, !Config.jp with
+  match t, !Config.ja with
   | Report, true -> "レポート"
   | Report, false -> "Report"
   | Toi(_, n), true -> "問" ^ string_of_int n

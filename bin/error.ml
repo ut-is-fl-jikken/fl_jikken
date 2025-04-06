@@ -31,7 +31,7 @@ type 'a result =
   | Unknown_error of string
 
 let message_of r =
-  match r, !Config.jp with
+  match r, !Config.ja with
   | OK None, _ -> ""
   | OK (Some s), _ -> s
   | Version_mismatch, true -> Printf.sprintf "OCaml %s で実行してください" Config.ocaml_version

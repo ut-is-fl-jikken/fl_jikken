@@ -17,7 +17,7 @@ let show_results oc (t, result) =
   if List.for_all (function OK _ -> true | _ -> false) result then
     let r = List.filter_map (function OK s -> s | _ -> None) result in
     let is_opt = t.items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) t.items in
-    match r, is_opt, !Config.jp with
+    match r, is_opt, !Config.ja with
     | [], true, true -> Printf.fprintf oc "%s" (Util.TColor.red "NG:" ^ "答えが見つかりません")
     | [], true, false -> Printf.fprintf oc "%s" (Util.TColor.red "NG:" ^ " No solution found")
     | [], false, _ -> Printf.fprintf oc "%s" (Util.TColor.green "OK")
@@ -36,7 +36,7 @@ let pack_results (t, result) =
     if List.for_all (function OK _ -> true | _ -> false) result then
       let r = List.filter_map (function OK s -> s | _ -> None) result in
       let is_opt = t.items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) t.items in
-      match r, is_opt, !Config.jp with
+      match r, is_opt, !Config.ja with
       | [], true, true -> ["答えが見つかりません"]
       | [], true, false -> ["No solution found"]
       | [], false, _ -> []
@@ -136,7 +136,7 @@ let make_archive () =
     Some Zip_failed)
   else
     (Command.mv [filename] Config.orig_working;
-     let message = if !Config.jp then
+     let message = if !Config.ja then
        Printf.sprintf "%sを作成しました\n" filename
      else
        Printf.sprintf "Created %s\n" filename
@@ -177,7 +177,7 @@ let main () =
       in
       output_results results;
       if (not !Config.force_creation) && (not @@ passed_mandatory results) then
-        (let message = if !Config.jp then
+        (let message = if !Config.ja then
                          "zipファイルを生成しませんでした"
                        else
                          "Did not generate zip file"

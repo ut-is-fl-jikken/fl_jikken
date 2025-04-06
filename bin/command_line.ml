@@ -200,7 +200,7 @@ let usage_ja = Printf.sprintf
             -- 第 <週番号> 週の課題のファイル構成を表示する
 |}
 let usage () =
-  if !Config.jp then
+  if !Config.ja then
     usage_ja
   else
     usage_en
