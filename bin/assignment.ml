@@ -36,7 +36,10 @@ module Target = struct
   let show = function
     | Exact s -> s
     | Suffix { body; suffix } ->
-        Printf.sprintf "%s.%s" body (String.concat "|" suffix)
+        Printf.sprintf "%s.%s" body @@
+        if List.length suffix > 1
+        then Printf.sprintf "{%s}" (String.concat "|" suffix)
+        else List.hd suffix
 end
 
 let options = function
