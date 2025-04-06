@@ -16,6 +16,12 @@ let list =
    12, Week12.assignments;
    13, []]
 
+let validate_week_no n =
+  try
+    Ok (List.assoc n list)
+  with Not_found ->
+    Error (Unsupported_week_no n)
+
 let assoc n =
   try
     List.assoc n list

@@ -14,8 +14,19 @@ let build = ref "dune build"
 let executable = ref "main.exe"
 let swipl = ref "swipl"
 
-type mode = Check_and_zip | Check of int | Print_file_struct of int
-let mode = ref Check_and_zip
+type target_info = {
+  week_number : int;
+  id : string;
+  for_dir : bool;
+}
+
+type filename_info = {
+  input_filename : string;
+  target : target_info option;
+}
+
+type mode = Unset | Check_and_zip of filename_info | Check of int | Print_file_struct of int
+let mode = ref Unset
 
 let disable_sandboxing = ref false
 let sandbox () = not !disable_sandboxing

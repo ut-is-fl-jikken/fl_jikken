@@ -21,6 +21,13 @@ type 'a result =
   | Unsupported_week_no of int
   | Zip_failed
   | No_input_file
+  | No_subcommand
+  | Bad_week_number of string
+  | Unknown_subcommand of string
+  | Invalid_option of string
+  | Illegal_option_not_in_subcommand of { actual: string; option: string }
+  | Illegal_option_in_subcommand of { actual: string; proper: string; option: string }
+  | Option_too_early of { proper: string; option: string }
   | Unknown_error of string
 
 let message_of r =
@@ -57,6 +64,20 @@ let message_of r =
   | Zip_failed, false -> Printf.sprintf "Command zip failed (See zip.err)"
   | No_input_file, true -> Printf.sprintf "入力ファイルを提供するか、または `--disable-sandboxing` オプションを指定してください"
   | No_input_file, false -> Printf.sprintf "Please provide an input file or specify the `--disable-sandboxing` option"
+  | No_subcommand, true -> Printf.sprintf "サブコマンドを指定してください"
+  | No_subcommand, false -> Printf.sprintf "Please specify a subcommand"
+  | Bad_week_number s, true -> Printf.sprintf "不正な週番号: %s" s
+  | Bad_week_number s, false -> Printf.sprintf "Bad week number: %s" s
+  | Unknown_subcommand s, true -> Printf.sprintf "不明なサブコマンド: %s" s
+  | Unknown_subcommand s, false -> Printf.sprintf "Unknown subcommand: %s" s
+  | Invalid_option s, true -> Printf.sprintf "不正なオプション: %s" s
+  | Invalid_option s, false -> Printf.sprintf "Invalid option: %s" s
+  | Illegal_option_not_in_subcommand { actual; option }, true -> Printf.sprintf "サブコマンド %s ではオプション %s は無効です" actual option
+  | Illegal_option_not_in_subcommand { actual; option }, false -> Printf.sprintf "Option %s is invalid for subcommand %s" option actual
+  | Illegal_option_in_subcommand { actual; proper; option }, true -> Printf.sprintf "サブコマンド %s では %s 用のオプション %s は無効です" actual proper option
+  | Illegal_option_in_subcommand { actual; proper; option }, false -> Printf.sprintf "Option %s is only for subcommand %s, not for %s" option proper actual
+  | Option_too_early { proper; option }, true -> Printf.sprintf "オプション %s はサブコマンド %s の後に指定してください" option proper
+  | Option_too_early { proper; option }, false -> Printf.sprintf "Option %s must be specified after subcommand %s" option proper
   | Unknown_error s, true -> Printf.sprintf "不明なエラー (%s)" s
   | Unknown_error s, false -> Printf.sprintf "Unknown error (%s)" s
 
@@ -65,10 +86,13 @@ let finalize () =
   if Config.sandbox () && Sys.file_exists Config.dir then
     Files.remove_rec Config.dir
 
+let graceful_exit code =
+  finalize ();
+  exit code
+
 let show_error_and_exit e =
   Printf.printf "%s\n" (message_of e);
-  finalize ();
-  exit 1
+  graceful_exit 1
 
 let show_error_and_exit_on_error = function
   | Ok _ -> ()

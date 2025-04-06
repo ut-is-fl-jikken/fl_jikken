@@ -2,45 +2,6 @@ open Util
 open Assignment
 open Error
 
-type target_info = {
-  week_number : int;
-  id : string;
-  for_dir : bool;
-}
-
-type filename_info = {
-  input_filename : string;
-  target : target_info option;
-}
-
-let filename s : filename_info =
-  let for_dir = Sys.is_directory s in
-  let ext = if for_dir then None else Some "zip" in
-  let ext_removed = match ext with
-    | None -> Some s
-    | Some e when String.ends_with s ("."^e) -> Some String.(sub s 0 (length s - length e - 1))
-    | _ -> None
-  in
-  let target =
-    match ext_removed
-    with
-    | None -> None
-    | Some s ->
-        let s = Filename.basename s in
-        if String.length s = 9 && s.[2] = '-' then
-          match int_of_string (String.sub s 0 2) with
-          | week_number ->
-              let id = String.sub s 3 (String.length s - 3) in
-              if Seq.fold_left (fun acc c -> acc && Char.is_int_char c) true (String.to_seq id) then
-                Some { week_number; id; for_dir }
-              else
-                None
-          | exception Invalid_argument _ -> None
-        else
-          None
-  in
-  { input_filename = s; target }
-
 module Extract = struct
   type base =
     | Tmpdir

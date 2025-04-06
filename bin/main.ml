@@ -151,10 +151,10 @@ let main () =
   |> show_error_and_exit_on_error;
 
   match !Config.mode with
-  | Check_and_zip ->
+  | Unset -> Command_line.show_usage_and_exit ()
+  | Check_and_zip filename_info ->
       (* validate input *)
-      if !Config.file = "" then (Printf.printf "%s\n" Command_line.usage; exit 1);
-      let filename_info = Check.filename !Config.file in
+      if !Config.file = "" then Command_line.show_usage_and_exit ();
       let target_info = match filename_info.target with
         | Some target_info -> target_info
         | None -> show_error_and_exit (File_name_invalid filename_info.input_filename)
