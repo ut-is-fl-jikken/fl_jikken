@@ -38,4 +38,4 @@ type output_dest = Stdout | Path of { path: string }
 let output_dest = ref Stdout
 
 let report_name = "report"
-let report_exts = ["txt"; "md"; "pdf"]
+let report_exts = ["md"; "txt"; "pdf"]
