@@ -19,7 +19,6 @@ let exec_h3_2 = Exec ["let x = 10;;",                          "# val x = 10";
 
 let assignments =
   [report;
-   toi 1 [];
    toi 2 [build; exec_2_1; exec_2_2]
      ~alt:[toi_id 3; toi_id 4];
    toi 3 [build; exec_3]
