@@ -4,13 +4,14 @@ version: "v2024.4"
 synopsis: "Check program for FL jikken"
 maintainer: ["Ken Sakayori <sakayori@is.s.u-tokyo.ac.jp>"]
 authors: ["Ken Sakayori <sakayori@is.s.u-tokyo.ac.jp>"]
-homepage: "https://github.com/KenSakayori/fl_jikken"
-bug-reports: "https://github.com/KenSakayori/fl_jikken/issues"
+homepage: "https://github.com/ut-is-fl-jikken/fl_jikken"
+bug-reports: "https://github.com/ut-is-fl-jikken/fl_jikken/issues"
 depends: [
-  "ocaml" {= "5.1.0"}
+  "ocaml" {= "5.1.1"}
   "ocamlfind"
   "dune" {>= "3.15"}
   "batteries"
+  "yojson"
   "odoc" {with-doc}
 ]
 build: [
@@ -27,7 +28,7 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/KenSakayori/fl_jikken.git"
+dev-repo: "git+https://github.com/ut-is-fl-jikken/fl_jikken.git"
 install: [
   ["dune" "install"]
   ["ocamlfind" "install" "fl-jikken-unifier" "unifier/META" "unifier/constraintSolver.cmi" "unifier/constraintSolver.cmo" "unifier/constraintSolver.mli" "unifier/tySyntax.cmi" "unifier/tySyntax.cmo" "unifier/tySyntax.mli"]

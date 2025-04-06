@@ -1,94 +1,145 @@
 open Util
 open Assignment
+open Error
 
 let init () =
   Command_line.parse();
-  if not !Config.force && Sys.ocaml_version <> Config.ocaml_version then
+  if not !Config.ignore_version_mismatch && Sys.ocaml_version <> Config.ocaml_version then
     Error Version_mismatch
   else
     begin
-      if not @@ Sys.file_exists Config.dir then Sys.mkdir Config.dir 0o755;
+      if Config.sandbox () && not @@ Sys.file_exists Config.dir then Sys.mkdir Config.dir 0o755;
       Ok ()
     end
 
-let finalize () =
-  Sys.chdir Config.orig_working;
-  if Sys.file_exists Config.dir then
-    Files.remove_rec Config.dir
-
-let show_error_and_exit = function
-  | Ok _ -> ()
-  | Error e ->
-      Printf.printf "%s\n" (message_of e);
-      finalize ();
-      exit 1
-
-let show_results (t, items, result) =
-  Printf.printf "[%s] " (subject_of t);
+let show_results oc (t, result) =
+  Printf.fprintf oc "[%s] " (subject_of t.kind);
   if List.for_all (function OK _ -> true | _ -> false) result then
     let r = List.filter_map (function OK s -> s | _ -> None) result in
-    let is_opt = items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) items in
-    match r, is_opt, !Config.jp with
-    | [], true, true -> Printf.printf "%s" (Util.TColor.red "NG:" ^ "答えが見つかりません")
-    | [], true, false -> Printf.printf "%s" (Util.TColor.red "NG:" ^ " No solution found")
-    | [], false, _ -> Printf.printf "%s" (Util.TColor.green "OK")
-    | _ -> Printf.printf "%s" (String.concat ", " r)
+    let is_opt = t.items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) t.items in
+    match r, is_opt, !Config.ja with
+    | [], true, true -> Printf.fprintf oc "%s" (Util.TColor.red "NG:" ^ "答えが見つかりません")
+    | [], true, false -> Printf.fprintf oc "%s" (Util.TColor.red "NG:" ^ " No solution found")
+    | [], false, _ -> Printf.fprintf oc "%s" (Util.TColor.green "OK")
+    | _ -> Printf.fprintf oc "%s" (String.concat ", " r)
   else
     result
     |> List.filter (function OK _ -> false | _ -> true)
     |> List.map message_of
     |> List.unique
     |> String.concat ", "
-    |> Printf.printf "%s %s" (Util.TColor.red "NG:");
-  Printf.printf "\n"
+    |> Printf.fprintf oc "%s %s" (Util.TColor.red "NG:");
+  Printf.fprintf oc "\n"
+
+let pack_results (t, result) =
+  let errors =
+    if List.for_all (function OK _ -> true | _ -> false) result then
+      let r = List.filter_map (function OK s -> s | _ -> None) result in
+      let is_opt = t.items <> [] && List.for_all (function TypeOpt _ -> true | _ -> false) t.items in
+      match r, is_opt, !Config.ja with
+      | [], true, true -> ["答えが見つかりません"]
+      | [], true, false -> ["No solution found"]
+      | [], false, _ -> []
+      | _ -> r
+    else
+      result
+      |> List.filter (function OK _ -> false | _ -> true)
+      |> List.map message_of
+      |> List.unique
+  in
+  `Assoc [
+    ("id", `String (subject_id_of t.kind));
+    ("is_ok", `Bool (List.is_empty errors));
+    ("errors", `List (errors |> List.map (fun s -> `String s)));
+  ]
+
+let output_results results =
+  let oc, close =
+    match !Config.output_dest with
+    | Stdout -> stdout, false
+    | Path { path } -> open_out path, true
+  in
+  begin match !Config.output_format with
+  | Human ->
+    List.iter begin function results ->
+      show_results oc results
+    end results;
+  | Json { pretty } ->
+    let list =
+      results
+      |> List.map pack_results
+    in
+    let json = `List list in
+    if pretty then
+      Yojson.Safe.pretty_to_channel oc json
+    else
+      Yojson.Safe.to_channel oc json
+  end;
+  if close then close_out oc
 
 let rec passed_mandatory = function
   | [] -> true
-  | (t, _, result) :: xs ->
-      List.for_all (function OK _ -> true | _ -> is_hatten t) result
+  | (t, result) :: xs ->
+      List.for_all (function OK _ -> true | _ -> is_optional t.kind) result
       && passed_mandatory xs
 
-let assiginments =
-  [ 1, Week01.assignments;
-    2, Week02.assignments;
-    3, Week03.assignments;
-    4, Week04.assignments;
-    5, Week05.assignments;
-    6, Week06.assignments;
-    7, Week07.assignments;
-    8, Week08.assignments;
-    9, Week09.assignments;
-   10, Week10.assignments;
-   11, Week11.assignments;
-   12, Week12.assignments;
-   13, []]
-
-let assoc_assignments n =
-  try
-    List.assoc n assiginments
-  with Not_found ->
-         show_error_and_exit (Error (Unsupported_week_no n));
-         assert false
-
-let print_file_struct n =
+let print_file_structure n =
   let dir = Format.sprintf "%02d-XXXXXX" n in
-  let files =
-    assoc_assignments n
-    |> List.map (fst |- filename_of)
-  in
-  let report =
-    Printf.sprintf "%s.{%s}" Config.report_name (String.concat "|" Config.report_exts)
-  in
-  let pr f =
-    if Filename.remove_extension f = f then
-      (Printf.printf "├── %s\n" f;
-       Printf.printf "│   └── ...\n")
+  let assignments = assoc n in
+  let print is_final t =
+    let f = Target.show (options t) in
+    if is_final then
+      if is_directory t.kind then
+        (Printf.printf "└── %s\n" f;
+         Printf.printf "    └── ...\n")
+      else
+        Printf.printf "└── %s\n" f
     else
-      Printf.printf "├── %s\n" f
+      if is_directory t.kind then
+        (Printf.printf "├── %s\n" f;
+         Printf.printf "│   └── ...\n")
+      else
+        Printf.printf "├── %s\n" f
   in
   Printf.printf "%s\n" dir;
-  List.iter pr files;
-  Printf.printf "└── %s\n" report
+  if not @@ List.is_empty assignments then
+    let assignments, last =
+      let rev = List.rev assignments in
+      List.rev (List.tl rev), List.hd rev
+    in
+    List.iter (print false) assignments;
+    print true last
+  else
+    Printf.printf "└── (empty)\n"
+
+let create_file_structure n mode =
+  let assignments = assoc n in
+  let create t =
+    let f = Target.show_first (options t) in
+    let early result =
+      if result <> 0 then
+        show_error_and_exit (Creation_failed f)
+      else ()
+    in
+    if is_directory t.kind then begin
+      if !Config.overwrite then early @@ Command.run "rm -rf %s\n" f;
+      early @@ Command.run "mkdir -p %s\n" f
+    end else begin
+      if !Config.overwrite then early @@ Command.run "rm -f %s\n" f;
+      early @@ Command.run "touch %s\n" f;
+    end
+  in
+  let remove t =
+    let f = Target.show_first (options t) in
+    if is_directory t.kind then begin
+      ignore @@ Command.run "rm -rf %s\n" f
+    end else begin
+      ignore @@ Command.run "rm -f %s\n" f
+    end
+  in
+  match mode with
+  | `Create -> List.iter create assignments
+  | `Remove -> List.iter remove assignments
 
 let make_env_file archive =
   (* This should go to the Util Module *)
@@ -105,7 +156,7 @@ let make_archive () =
   let archive = Printf.sprintf "%02d-%s" !Config.no !Config.id in
   let filename = Printf.sprintf "%02d-%s.zip" !Config.no !Config.id in
   Sys.chdir Config.orig_working;
-  Sys.chdir Config.dir;
+  if Config.sandbox () then Sys.chdir Config.dir;
   make_env_file archive;
   let r = Command.run ~filename:"zip" "zip -r %s %s" filename archive in
   if 0 <> r then
@@ -113,7 +164,7 @@ let make_archive () =
     Some Zip_failed)
   else
     (Command.mv [filename] Config.orig_working;
-     let message = if !Config.jp then
+     let message = if !Config.ja then
        Printf.sprintf "%sを作成しました\n" filename
      else
        Printf.sprintf "Created %s\n" filename
@@ -125,22 +176,36 @@ let make_archive () =
 let main () =
   (*  *Log.mode := Log.Debug; *)
   init()
-  |> show_error_and_exit;
+  |> show_error_and_exit_on_error;
 
   match !Config.mode with
-  | Check ->
-      if !Config.file = "" then (Printf.printf "%s\n" Command_line.usage; exit 1);
-
-
-      Check.file_organization()
-      |> show_error_and_exit;
-
-      let results = assoc_assignments !Config.no
-                    |> List.map (fun (t,items) -> t, items, Check.file t items)
+  | Unset -> Command_line.show_usage_and_exit ()
+  | Check_and_zip filename_info ->
+      (* validate input *)
+      if !Config.file = "" then Command_line.show_usage_and_exit ();
+      let target_info = match filename_info.target with
+        | Some target_info -> target_info
+        | None -> show_error_and_exit (File_name_invalid filename_info.input_filename)
       in
-      List.iter show_results results;
-      if not @@ passed_mandatory results then
-        (let message = if !Config.jp then
+
+      Config.no := target_info.week_number;
+      Config.id := target_info.id;
+      let copy_method =
+        let base = if Config.sandbox () then Check.Extract.Tmpdir else Cwd in
+        if target_info.for_dir then
+          Check.Extract.Directory { input_dir = filename_info.input_filename; base }
+        else
+          Check.Extract.Unzip { input_filename = filename_info.input_filename; base }
+      in
+      Check.file_organization copy_method
+      |> show_error_and_exit_on_error;
+
+      let results = assoc !Config.no
+                    |> List.map (fun t -> t, Check.file copy_method t)
+      in
+      output_results results;
+      if (not !Config.force_creation) && (not @@ passed_mandatory results) then
+        (let message = if !Config.ja then
                          "zipファイルを生成しませんでした"
                        else
                          "Did not generate zip file"
@@ -150,10 +215,54 @@ let main () =
          finalize ())
       else
         (match make_archive () with
-         | Some e -> show_error_and_exit (Error e)
+         | Some e -> show_error_and_exit e
          | None -> finalize ())
-  | Print_file_struct n ->
-      print_file_struct n;
+  | Check week_number ->
+      let apply_default_filename s =
+        if s = "" then "." else s
+      in
+      let input_filename = !Config.file in
+      let copy_method =
+        let base = if Config.sandbox () then Check.Extract.Tmpdir else Cwd in
+        if !Config.disable_sandboxing then
+          Check.Extract.Never { input_dir = apply_default_filename input_filename; base }
+        else
+          if input_filename = "" then
+            show_error_and_exit No_input_file
+          else
+            Check.Extract.Directory { input_dir = apply_default_filename input_filename; base }
+      in
+
+      Config.no := week_number;
+      Check.file_organization copy_method
+      |> show_error_and_exit_on_error;
+
+      let results = assoc week_number
+                    |> List.map (fun t -> t, Check.file copy_method t)
+      in
+      output_results results;
+
+      finalize ()
+  | File_struct { week_number; create } ->
+      if create then
+        let apply_default_filename s =
+          if s = "" then "." else s
+        in
+        let input_filename = apply_default_filename !Config.file in
+        if not !Config.undo then
+          if Sys.file_exists input_filename && not @@ Sys.is_directory input_filename then
+            show_error_and_exit (File_exists input_filename)
+          else
+            create_file_structure week_number `Create
+        else
+          if not @@ Sys.file_exists input_filename || not @@ Sys.is_directory input_filename then
+            show_error_and_exit (File_name_invalid input_filename)
+          else
+            create_file_structure week_number `Remove
+      else begin
+        if !Config.file <> "" then Command_line.show_usage_and_exit ();
+        print_file_structure week_number;
+      end;
       finalize()
 
 let () = if not !Sys.interactive then main()

@@ -1,4 +1,6 @@
-open Assignment
+open Assignment_types
+open Edsl
+open Interpreter
 
 let may_be_included =
   ["constraintSolver.cmi";
@@ -7,4 +9,5 @@ let may_be_included =
    "tySyntax.cmo"]
 
 let assignments =
-  [Toi(Dir, 1), [Build(None, may_be_included)]]
+  [report;
+   toi 1 [Build(None, may_be_included)]]

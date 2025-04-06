@@ -1,4 +1,6 @@
-open Assignment
+open Assignment_types
+open Edsl
 
 let assignments =
-  [Hatten(Dir, 2), []]
+  [report;
+   Dir.hatten 2 []]

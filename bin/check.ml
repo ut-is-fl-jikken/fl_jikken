@@ -1,54 +1,67 @@
 open Util
 open Assignment
+open Error
 
-let check_filename ?ext s =
-  match
-    match ext with
-    | None -> Some s
-    | Some e when String.ends_with s ("."^e) -> Some String.(sub s 0 (length s - length e - 1))
-    | _ -> None
-  with
-  | None -> None
-  | Some s ->
-      let s = Filename.basename s in
-      if String.length s = 9 && s.[2] = '-' then
-        match int_of_string (String.sub s 0 2) with
-        | n ->
-            Config.no := n;
-            let s' = String.sub s 3 (String.length s - 3) in
-            if Seq.fold_left (fun acc c -> acc && Char.is_int_char c) true (String.to_seq s') then
-              Some s'
-            else
-              None
-        | exception Invalid_argument _ -> None
-      else
-        None
+module Extract = struct
+  type base =
+    | Tmpdir
+    | Cwd
+  type kind =
+    | Never of { input_dir: string; base: base }
+    | Directory of { input_dir: string; base: base }
+    | Unzip of { input_filename: string; base: base }
+  let extracted_relative_path = function
+    | Never { base = Tmpdir; _ } -> None
+    | Never { base = Cwd; input_dir } -> Some input_dir
+    | Directory { input_dir; _ } -> Some (Filename.basename input_dir)
+    | Unzip { input_filename; _ } -> Some (Filename.remove_extension @@ Filename.basename input_filename)
+end
 
-let check_file_organization () =
-  let for_dir = Sys.is_directory !Config.file in
-  let ext = if for_dir then None else Some "zip" in
-  match check_filename ?ext !Config.file with
-  | None -> Error (File_name_invalid !Config.file)
-  | Some id ->
-      Config.id := id;
-      let cmd =
-        if for_dir then
-          Printf.sprintf "cp -r %s %s" !Config.file Config.dir
-        else
-          Printf.sprintf "unzip -q -d %s %s" Config.dir !Config.file
-      in
-      debug "cmd: %s@." cmd;
-      if Sys.command cmd <> 0 then
-        Error Cannot_extract
-      else
-        let dir = Config.dir ^ "/" ^ Filename.remove_extension @@ Filename.basename !Config.file in
-        Config.file_dir := dir;
-        if not (Sys.file_exists dir && Sys.is_directory dir) then
-          Error (Directory_not_found (Filename.remove_extension !Config.file))
-        else if not @@ List.exists (fun ext -> Sys.file_exists (Printf.sprintf "%s/%s.%s" dir Config.report_name ext)) Config.report_exts then
-          Error (File_not_found (Config.report_name ^ ".*"))
-        else
-          Ok ()
+let file_organization extract =
+  let cmd =
+    match extract with
+    | Extract.Never _ ->
+      None
+    | Directory { input_dir; base = Tmpdir } ->
+      Option.some @@ Printf.sprintf "cp -r %s %s" input_dir Config.dir
+    | Directory { input_dir; base = Cwd } ->
+      Option.some @@ Printf.sprintf "cp -r %s ." input_dir
+    | Unzip { input_filename; base = Tmpdir } ->
+      Option.some @@ Printf.sprintf "unzip -q -d %s %s" Config.dir input_filename
+    | Unzip { input_filename; base = Cwd } ->
+      Option.some @@ Printf.sprintf "unzip -q %s" input_filename
+  in
+  let (let*) = Result.bind in
+  let (let**) o f =
+    match o with
+    | None -> Ok ()
+    | Some x -> f x
+  in
+  let* () =
+    let** cmd = cmd in
+    debug "cmd: %s@." cmd;
+    if Sys.command cmd <> 0 then
+      Error Cannot_extract
+    else
+      Ok ()
+  in
+  let* extracted_relative =
+    match Extract.extracted_relative_path extract with
+    | None -> Error Cannot_extract
+    | Some x -> Ok x
+  in
+  let segments =
+    if Config.sandbox () then
+      Config.dir :: [extracted_relative]
+    else
+      [extracted_relative]
+  in
+  let** dir = Files.concat_segments segments in
+  Config.file_dir := Some dir;
+  if not (Sys.file_exists dir && Sys.is_directory dir) then
+    Error (Directory_not_found extracted_relative)
+  else
+    Ok ()
 
 let count_leading_spaces s =
   let rec loop i c s =
@@ -93,21 +106,33 @@ let parse_ocaml_output s =
       let len = String.length prefix in
       f @@ String.sub s len (String.length s - len)
 
-let parse_prolog_error prev_is_warning error =
-  match String.split_on_char ':' error with
-  | ["ERROR"; _s2; _s3; " Undefined procedure"; s5] ->
-      `Error (Predicate_not_found (String.remove_prefix ~prefix:" " s5))
-  | "Warning"::_ -> `Warning
-  | s::_ when prev_is_warning && s.[0] = '\t' -> `Warning
-  | _ -> `Error (Unknown_error error)
+type parse_prolog_state =
+  | Skip_until of int
+  | Skip_if_warning
+
+let default_parse_prolog_state = Skip_until 0
+
+let parse_prolog_error state error =
+  match String.split_on_char ':' error, state with
+  | _, Skip_until n when n <> 0 ->
+      `Information, Skip_until (n-1)
+  | ["ERROR"; _prolog_argument; _error_reporter; " Undefined procedure"; predicate_kind], _ ->
+      `Error (Predicate_not_found (String.remove_prefix ~prefix:" " predicate_kind)), default_parse_prolog_state
+  | ["ERROR"; _prolog_argument; _error_reporter; " Unknown procedure"; predicate_kind], _ ->
+      `Error (Predicate_not_found (String.remove_prefix ~prefix:" " predicate_kind)), Skip_until 2
+  | "Warning"::_, _ -> `Warning, Skip_if_warning
+  | s::_, Skip_if_warning when s.[0] = '\t' -> `Warning, Skip_if_warning
+  | _ -> `Error (Unknown_error error), default_parse_prolog_state
 let parse_prolog_errors es =
   let acc_rev,_ =
     ListLabels.fold_left es
-      ~init:([],false)
+      ~init:([],default_parse_prolog_state)
       ~f:(fun (acc_rev,prev) e ->
-        match parse_prolog_error prev e with
-        | `Error e -> e::acc_rev, false
-        | `Warning -> acc_rev, true)
+        let result, state = parse_prolog_error prev e in
+        begin match result with
+          | `Error e -> e::acc_rev
+          | `Warning | `Information -> acc_rev
+        end, state)
   in
   List.rev acc_rev
 
@@ -244,31 +269,21 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
         | Ok _ -> [OK None]
         | Error es -> es
       end
-  | Build(main, except) ->
+  | Build(main, _) ->
       assert is_dir;
       let exec =
         Option.value main ~default:!Config.executable
         |> Format.sprintf "%s/%s" filename
       in
       let prefix = Config.dir ^ "/" in
-      let object_files = [".exe";".cmo";".cmx";".cma";".cmxa";".cmxs";".cmt";".cmti";".cmi";".o";".a"] in
       let result =
-        let files =
-          object_files
-          |> List.filter_map (Files.find ~filename)
-          |> List.filter (fun f -> not @@ List.mem (Filename.basename f) except)
-        in
-        match files with
-        | file::_ ->
-            Object_file_found (String.remove_prefix ~prefix file)
-        | [] ->
-            let r = Sys.command @@ Printf.sprintf "cd %s; %s > /dev/null 2>&1" filename !Config.build in
-            if r <> 0 then
-              Build_failed
-            else if Sys.file_exists exec then
-              OK None
-            else
-              File_not_found_after_build (String.remove_prefix ~prefix exec)
+        let r = Sys.command @@ Printf.sprintf "cd %s; %s && %s > /dev/null 2>&1" filename !Config.clean !Config.build in
+        if r <> 0 then
+          Build_failed
+        else if Sys.file_exists exec then
+          OK None
+        else
+          File_not_found_after_build (String.remove_prefix ~prefix exec)
       in
       [result]
   | Exec tests ->
@@ -323,17 +338,24 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
       r
 
 
-let check_file t items =
-  let is_dir = is_directory t in
-  let filename = !Config.file_dir ^ "/" ^ filename_of t in
-  debug "Check %s@." @@ subject_of t;
-  if not @@ Sys.file_exists filename then
-    let path = Printf.sprintf "%02d-%s/%s" !Config.no !Config.id (filename_of t) in
-    [if is_dir then Directory_not_found path else File_not_found path]
-  else
-    items
-    |> List.concat_map (check_item ~is_dir filename)
-
-
-let file_organization = check_file_organization
-let file = check_file
+let file extract t =
+  let is_dir = is_directory t.kind in
+  let open Target in
+  let options = options t in
+  let paths =
+    Files.product_segments @@
+    [Option.value ~default:"" (!Config.file_dir)] :: [iter options]
+  in
+  debug "Check %s@." @@ subject_of t.kind;
+  match paths |> List.find_opt Sys.file_exists with
+    | None ->
+      let path =
+        match Extract.extracted_relative_path extract with
+        | None -> show options
+        | Some copied_relative_path ->
+          Filename.concat copied_relative_path (show options)
+      in
+      [if is_dir then Directory_not_found path else File_not_found path]
+    | Some path ->
+      t.items
+      |> List.concat_map (check_item ~is_dir path)

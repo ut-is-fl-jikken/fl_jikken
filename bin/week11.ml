@@ -1,5 +1,7 @@
-open Assignment
+open Assignment_types
+open Edsl
 
 let assignments =
-  [Toi(Prolog, 3), [];
-   Hatten(Dir, 1), []]
+  [report;
+   Prolog.toi 3 [];
+   Dir.hatten 1 []]

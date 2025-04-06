@@ -2,7 +2,7 @@
 (name fl_jikken)
 (generate_opam_files)
 (version v2024.4)
-(source (github KenSakayori/fl_jikken))
+(source (github ut-is-fl-jikken/fl_jikken))
 (authors "Ken Sakayori <sakayori@is.s.u-tokyo.ac.jp>")
 (maintainers "Ken Sakayori <sakayori@is.s.u-tokyo.ac.jp>")
 
@@ -10,8 +10,9 @@
  (name fl_jikken)
  (synopsis "Check program for FL jikken")
  (depends
-  (ocaml (= 5.1.0))
+  (ocaml (= 5.1.1))
    ocamlfind
    dune
    batteries
+   yojson
 ))

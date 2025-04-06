@@ -1,7 +1,6 @@
-open Assignment
-
-let toi n = Toi(Dir, n)
-let hatten n = Hatten(Dir, n)
+open Assignment_types
+open Edsl
+open Interpreter
 
 let exec_1 = Exec ["let f = fun x -> x + x;;",                                    "# val f = <fun>";
                    "f 1;;",                                                       "# - = 2";
@@ -21,13 +20,14 @@ let exec_h3 = Exec ["let a = 10;;",              "# val a = 10";
                     "let a = 20;;",              "# val a = 20";
                     "f 5;;",                     "# - = 25"]
 
-let build = Build(None, [])
-
 let assignments =
-  [toi 1, [build; exec_1];
-   toi 2, [build; exec_2];
-   toi 3, [build; exec_3];
-   toi 4, [build; exec_2];
-   hatten 1, [build; exec_h1];
-   hatten 2, [build; exec_2];
-   hatten 3, [build; exec_h3]]
+  [report;
+   toi 1 [build; exec_1]
+     ~alt:[toi_id 2; toi_id 3];
+   toi 2 [build; exec_2]
+     ~alt:[toi_id 3];
+   toi 3 [build; exec_3];
+   toi 4 [build; exec_2];
+   hatten 1 [build; exec_h1];
+   hatten 2 [build; exec_2];
+   hatten 3 [build; exec_h3]]
