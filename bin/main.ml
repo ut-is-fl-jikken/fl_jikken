@@ -4,7 +4,7 @@ open Error
 
 let init () =
   Command_line.parse();
-  if not !Config.force && Sys.ocaml_version <> Config.ocaml_version then
+  if not !Config.ignore_version_mismatch && Sys.ocaml_version <> Config.ocaml_version then
     Error Version_mismatch
   else
     begin
@@ -170,7 +170,7 @@ let main () =
                     |> List.map (fun t -> t, Check.file copy_method t)
       in
       output_results results;
-      if not @@ passed_mandatory results then
+      if (not !Config.force_creation) && (not @@ passed_mandatory results) then
         (let message = if !Config.jp then
                          "zipファイルを生成しませんでした"
                        else

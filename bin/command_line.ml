@@ -15,8 +15,10 @@ let options =
     else
       Config.mode := Check n
   in
-  ["-f", Arg.Set Config.force, "";
-   "-e", Arg.Clear Config.jp, "";
+  ["--ignore-version", Arg.Set Config.ignore_version_mismatch, "  Force to proceed on OCaml version mismatch";
+   "--force", Arg.Set Config.force_creation, "  Force to create an archive even if the assignment is not completed";
+   "-f", Arg.Set Config.force_creation, "  The same as --force";
+   "-e", Arg.Clear Config.jp, "  Use English messages";
    "--build", Arg.Set_string Config.build, {|<command>  Use <command> to build ocaml projects instead of "dune build"|};
    "-b", Arg.Set_string Config.build, " The same as --build";
    "--format", Arg.String handle_format, {|<format>  Use <format> to output test status|};
