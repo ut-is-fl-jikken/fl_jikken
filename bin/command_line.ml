@@ -7,7 +7,7 @@ let print_version_and_exit () =
   print_version ();
   exit 0
 
-type subcommand = Check_and_zip | Check | Print_file_struct
+type subcommand = Check_and_zip | Check | Print_file_struct | Create_file_struct
 
 type parse_state =
   | Init
@@ -21,6 +21,7 @@ module Gated = struct
     | Check_and_zip -> "zip"
     | Check -> "check"
     | Print_file_struct -> "print"
+    | Create_file_struct -> "create"
 
   let equal proper = function
     | Some actual when actual = proper -> true
@@ -105,6 +106,11 @@ let options =
    Gated.set "--disable-sandboxing" Config.disable_sandboxing " Disable tmp directory sandboxing"
      ~cond:(`Not Print_file_struct);
 
+   Gated.set "--undo" Config.undo " Undo the creation of file structure"
+     ~cond:(`If Create_file_struct);
+   Gated.set "--overwrite" Config.overwrite " Overwrite existing files"
+     ~cond:(`If Create_file_struct);
+
    Gated.unit "--ci" (fun () -> handle_format "json") {| Run in CI mode|}
      ~cond:(`If Check);]
 
@@ -122,6 +128,9 @@ let arg_parser input =
         state := Subcommand;
       | "print" ->
         mode := Some Print_file_struct;
+        state := Subcommand;
+      | "create" ->
+        mode := Some Create_file_struct;
         state := Subcommand;
       | s ->
         show_error_and_exit (Unknown_subcommand s);
@@ -142,7 +151,19 @@ let arg_parser input =
       match int_of_string_opt input with
       | Some n ->
         show_error_and_exit_on_error (Assignment.validate_week_no n);
-        Config.mode := Print_file_struct n;
+        Config.mode := File_struct { week_number = n; create = false };
+        Config.disable_sandboxing := true;
+        (* Disable sandboxing for print command *)
+        state := Accept_file_or_end;
+      | None ->
+        show_error_and_exit (Bad_week_number input);
+    end
+  | Subcommand, Some Create_file_struct ->
+    begin
+      match int_of_string_opt input with
+      | Some n ->
+        show_error_and_exit_on_error (Assignment.validate_week_no n);
+        Config.mode := File_struct { week_number = n; create = true };
         Config.disable_sandboxing := true;
         (* Disable sandboxing for print command *)
         state := Accept_file_or_end;
@@ -190,6 +211,10 @@ let usage_en = Printf.sprintf
             -- Create an archive of the assignment (obsolete)
        fl_jikken print <week_number>
             -- Print the file structure for the assignment of Week <week_number>
+       fl_jikken create <week_number> [--overwrite]
+            -- Create the file structure for the assignment of Week <week_number>
+       fl_jikken create <week_number> --undo
+            -- Remove the file structure for the assignment of Week <week_number>
 |}
 let usage_ja = Printf.sprintf
 {|Usage: fl_jikken check <週番号> [課題のパス="."] [他のオプション]
@@ -198,6 +223,10 @@ let usage_ja = Printf.sprintf
             -- 課題をチェックし、アーカイブを作成する (古い形式)
        fl_jikken print <週番号>
             -- 第 <週番号> 週の課題のファイル構成を表示する
+       fl_jikken create <週番号> [--overwrite]
+            -- 第 <週番号> 週の課題のファイル構成を作成する
+       fl_jikken create <週番号> --undo
+            -- 第 <週番号> 週の課題のファイル構成を削除する
 |}
 let usage () =
   if !Config.ja then

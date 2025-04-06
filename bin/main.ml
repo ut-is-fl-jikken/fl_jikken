@@ -83,22 +83,21 @@ let rec passed_mandatory = function
       List.for_all (function OK _ -> true | _ -> is_optional t.kind) result
       && passed_mandatory xs
 
-let print_file_struct n =
+let print_file_structure n =
   let dir = Format.sprintf "%02d-XXXXXX" n in
-  let assignments = assoc n
-  in
+  let assignments = assoc n in
   let print is_final t =
     let f = Target.show (options t) in
     if is_final then
       if is_directory t.kind then
         (Printf.printf "└── %s\n" f;
-        Printf.printf "    └── ...\n")
+         Printf.printf "    └── ...\n")
       else
         Printf.printf "└── %s\n" f
     else
       if is_directory t.kind then
         (Printf.printf "├── %s\n" f;
-        Printf.printf "│   └── ...\n")
+         Printf.printf "│   └── ...\n")
       else
         Printf.printf "├── %s\n" f
   in
@@ -112,6 +111,35 @@ let print_file_struct n =
     print true last
   else
     Printf.printf "└── (empty)\n"
+
+let create_file_structure n mode =
+  let assignments = assoc n in
+  let create t =
+    let f = Target.show_first (options t) in
+    let early result =
+      if result <> 0 then
+        show_error_and_exit (Creation_failed f)
+      else ()
+    in
+    if is_directory t.kind then begin
+      if !Config.overwrite then early @@ Command.run "rm -rf %s\n" f;
+      early @@ Command.run "mkdir -p %s\n" f
+    end else begin
+      if !Config.overwrite then early @@ Command.run "rm -f %s\n" f;
+      early @@ Command.run "touch %s\n" f;
+    end
+  in
+  let remove t =
+    let f = Target.show_first (options t) in
+    if is_directory t.kind then begin
+      ignore @@ Command.run "rm -rf %s\n" f
+    end else begin
+      ignore @@ Command.run "rm -f %s\n" f
+    end
+  in
+  match mode with
+  | `Create -> List.iter create assignments
+  | `Remove -> List.iter remove assignments
 
 let make_env_file archive =
   (* This should go to the Util Module *)
@@ -215,8 +243,26 @@ let main () =
       output_results results;
 
       finalize ()
-  | Print_file_struct n ->
-      print_file_struct n;
+  | File_struct { week_number; create } ->
+      if create then
+        let apply_default_filename s =
+          if s = "" then "." else s
+        in
+        let input_filename = apply_default_filename !Config.file in
+        if not !Config.undo then
+          if Sys.file_exists input_filename && not @@ Sys.is_directory input_filename then
+            show_error_and_exit (File_exists input_filename)
+          else
+            create_file_structure week_number `Create
+        else
+          if not @@ Sys.file_exists input_filename || not @@ Sys.is_directory input_filename then
+            show_error_and_exit (File_name_invalid input_filename)
+          else
+            create_file_structure week_number `Remove
+      else begin
+        if !Config.file <> "" then Command_line.show_usage_and_exit ();
+        print_file_structure week_number;
+      end;
       finalize()
 
 let () = if not !Sys.interactive then main()

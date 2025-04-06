@@ -21,6 +21,10 @@ type 'a result =
   | Unsupported_week_no of int
   | Zip_failed
   | No_input_file
+  | File_exists of string
+  | File_exists_cannot_undo of string
+  | Directory_not_found_cannot_undo of string
+  | Creation_failed of string
   | No_subcommand
   | Bad_week_number of string
   | Unknown_subcommand of string
@@ -64,6 +68,14 @@ let message_of r =
   | Zip_failed, false -> Printf.sprintf "Command zip failed (See zip.err)"
   | No_input_file, true -> Printf.sprintf "入力ファイルを提供するか、または `--disable-sandboxing` オプションを指定してください"
   | No_input_file, false -> Printf.sprintf "Please provide an input file or specify the `--disable-sandboxing` option"
+  | File_exists f, true -> Printf.sprintf "ディレクトリではなくファイル %s が存在します" f
+  | File_exists f, false -> Printf.sprintf "File %s exists, not a directory" f
+  | File_exists_cannot_undo f, true -> Printf.sprintf "ディレクトリではなくファイル %s が存在するため、元に戻せません" f
+  | File_exists_cannot_undo f, false -> Printf.sprintf "Cannot undo because file %s exists, not a directory" f
+  | Directory_not_found_cannot_undo f, true -> Printf.sprintf "ディレクトリ %s が存在しないため、元に戻せません" f
+  | Directory_not_found_cannot_undo f, false -> Printf.sprintf "Cannot undo because directory %s does not exist" f
+  | Creation_failed f, true -> Printf.sprintf "ファイル %s の作成に失敗しました。生成を中止します" f
+  | Creation_failed f, false -> Printf.sprintf "Failed to create file %s. Stopping creation" f
   | No_subcommand, true -> Printf.sprintf "サブコマンドを指定してください"
   | No_subcommand, false -> Printf.sprintf "Please specify a subcommand"
   | Bad_week_number s, true -> Printf.sprintf "不正な週番号: %s" s

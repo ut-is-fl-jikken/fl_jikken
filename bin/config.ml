@@ -25,8 +25,11 @@ type filename_info = {
   target : target_info option;
 }
 
-type mode = Unset | Check_and_zip of filename_info | Check of int | Print_file_struct of int
+type mode = Unset | Check_and_zip of filename_info | Check of int | File_struct of { week_number: int; create: bool}
 let mode = ref Unset
+
+let undo = ref false
+let overwrite = ref false
 
 let disable_sandboxing = ref false
 let sandbox () = not !disable_sandboxing

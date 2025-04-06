@@ -57,6 +57,12 @@ module Target = struct
         Printf.sprintf "%s (otherwise %s)" main @@
         String.concat ", " alternative
 
+  let rec show_first = function
+    | Exact s -> s
+    | Suffix { body; suffix } ->
+        Printf.sprintf "%s.%s" body @@ List.hd suffix
+    | Alt { main; _ } ->
+        show_first main
 end
 
 let options t =
