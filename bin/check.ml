@@ -145,21 +145,33 @@ let parse_ocaml_output s =
       let len = String.length prefix in
       f @@ String.sub s len (String.length s - len)
 
-let parse_prolog_error prev_is_warning error =
-  match String.split_on_char ':' error with
-  | ["ERROR"; _s2; _s3; " Undefined procedure"; s5] ->
-      `Error (Predicate_not_found (String.remove_prefix ~prefix:" " s5))
-  | "Warning"::_ -> `Warning
-  | s::_ when prev_is_warning && s.[0] = '\t' -> `Warning
-  | _ -> `Error (Unknown_error error)
+type parse_prolog_state =
+  | Skip_until of int
+  | Skip_if_warning
+
+let default_parse_prolog_state = Skip_until 0
+
+let parse_prolog_error state error =
+  match String.split_on_char ':' error, state with
+  | _, Skip_until n when n <> 0 ->
+      `Information, Skip_until (n-1)
+  | ["ERROR"; _prolog_argument; _error_reporter; " Undefined procedure"; predicate_kind], _ ->
+      `Error (Predicate_not_found (String.remove_prefix ~prefix:" " predicate_kind)), default_parse_prolog_state
+  | ["ERROR"; _prolog_argument; _error_reporter; " Unknown procedure"; predicate_kind], _ ->
+      `Error (Predicate_not_found (String.remove_prefix ~prefix:" " predicate_kind)), Skip_until 2
+  | "Warning"::_, _ -> `Warning, Skip_if_warning
+  | s::_, Skip_if_warning when s.[0] = '\t' -> `Warning, Skip_if_warning
+  | _ -> `Error (Unknown_error error), default_parse_prolog_state
 let parse_prolog_errors es =
   let acc_rev,_ =
     ListLabels.fold_left es
-      ~init:([],false)
+      ~init:([],default_parse_prolog_state)
       ~f:(fun (acc_rev,prev) e ->
-        match parse_prolog_error prev e with
-        | `Error e -> e::acc_rev, false
-        | `Warning -> acc_rev, true)
+        let result, state = parse_prolog_error prev e in
+        begin match result with
+          | `Error e -> e::acc_rev
+          | `Warning | `Information -> acc_rev
+        end, state)
   in
   List.rev acc_rev
 
