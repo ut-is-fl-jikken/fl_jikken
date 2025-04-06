@@ -296,31 +296,21 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
         | Ok _ -> [OK None]
         | Error es -> es
       end
-  | Build(main, except) ->
+  | Build(main, _) ->
       assert is_dir;
       let exec =
         Option.value main ~default:!Config.executable
         |> Format.sprintf "%s/%s" filename
       in
       let prefix = Config.dir ^ "/" in
-      let object_files = [".exe";".cmo";".cmx";".cma";".cmxa";".cmxs";".cmt";".cmti";".cmi";".o";".a"] in
       let result =
-        let files =
-          object_files
-          |> List.filter_map (Files.find ~filename)
-          |> List.filter (fun f -> not @@ List.mem (Filename.basename f) except)
-        in
-        match files with
-        | file::_ ->
-            Object_file_found (String.remove_prefix ~prefix file)
-        | [] ->
-            let r = Sys.command @@ Printf.sprintf "cd %s; %s > /dev/null 2>&1" filename !Config.build in
-            if r <> 0 then
-              Build_failed
-            else if Sys.file_exists exec then
-              OK None
-            else
-              File_not_found_after_build (String.remove_prefix ~prefix exec)
+        let r = Sys.command @@ Printf.sprintf "cd %s; %s && %s > /dev/null 2>&1" filename !Config.clean !Config.build in
+        if r <> 0 then
+          Build_failed
+        else if Sys.file_exists exec then
+          OK None
+        else
+          File_not_found_after_build (String.remove_prefix ~prefix exec)
       in
       [result]
   | Exec tests ->

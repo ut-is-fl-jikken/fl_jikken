@@ -20,6 +20,7 @@ let options =
    "-f", Arg.Set Config.force_creation, "  The same as --force";
    "-e", Arg.Clear Config.jp, "  Use English messages";
    "--build", Arg.Set_string Config.build, {|<command>  Use <command> to build ocaml projects instead of "dune build"|};
+   "--clean", Arg.Set_string Config.clean, {|<command>  Use <command> to clean ocaml projects before building instead of "dune clean"|};
    "-b", Arg.Set_string Config.build, " The same as --build";
    "--format", Arg.String handle_format, {|<format>  Use <format> to output test status|};
    "--output", Arg.String handle_output, {|<path>  Save to <path> instead of printing to stdout|};

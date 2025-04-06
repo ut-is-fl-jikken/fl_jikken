@@ -9,6 +9,7 @@ let ignore_version_mismatch = ref false
 let force_creation = ref false
 let jp = ref true
 let file = ref ""
+let clean = ref "dune clean"
 let build = ref "dune build"
 let executable = ref "main.exe"
 let swipl = ref "swipl"
