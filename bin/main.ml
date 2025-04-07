@@ -122,19 +122,19 @@ let create_file_structure n mode =
       else ()
     in
     if is_directory t.kind then begin
-      if !Config.overwrite then early @@ Command.run "rm -rf %s\n" f;
-      early @@ Command.run "mkdir -p %s\n" f
+      if !Config.overwrite then early @@ Command.run "rm -rf %s" f;
+      early @@ Command.run "mkdir -p %s" f
     end else begin
-      if !Config.overwrite then early @@ Command.run "rm -f %s\n" f;
-      early @@ Command.run "touch %s\n" f;
+      if !Config.overwrite then early @@ Command.run "rm -f %s" f;
+      early @@ Command.run "touch %s" f;
     end
   in
   let remove t =
     let f = Target.show_first (options t) in
     if is_directory t.kind then begin
-      ignore @@ Command.run "rm -rf %s\n" f
+      ignore @@ Command.run "rm -rf %s" f
     end else begin
-      ignore @@ Command.run "rm -f %s\n" f
+      ignore @@ Command.run "rm -f %s" f
     end
   in
   match mode with
@@ -248,17 +248,24 @@ let main () =
         let apply_default_filename s =
           if s = "" then "." else s
         in
-        let input_filename = apply_default_filename !Config.file in
+        let input_dirname = apply_default_filename !Config.file in
         if not !Config.undo then
-          if Sys.file_exists input_filename && not @@ Sys.is_directory input_filename then
-            show_error_and_exit (File_exists input_filename)
-          else
+          if Sys.file_exists input_dirname && not @@ Sys.is_directory input_dirname then
+            show_error_and_exit (File_exists input_dirname)
+          else begin
+            ignore @@ Command.run "mkdir -p %s" input_dirname;
+            Sys.chdir input_dirname;
             create_file_structure week_number `Create
+          end
         else
-          if not @@ Sys.file_exists input_filename || not @@ Sys.is_directory input_filename then
-            show_error_and_exit (File_name_invalid input_filename)
-          else
+          if not @@ Sys.file_exists input_dirname then
+            show_error_and_exit (Directory_not_found_cannot_undo input_dirname)
+          else if not @@ Sys.is_directory input_dirname then
+            show_error_and_exit (File_exists_cannot_undo input_dirname)
+          else begin
+            Sys.chdir input_dirname;
             create_file_structure week_number `Remove
+          end
       else begin
         if !Config.file <> "" then Command_line.show_usage_and_exit ();
         print_file_structure week_number;
