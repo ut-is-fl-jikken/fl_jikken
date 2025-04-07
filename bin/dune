@@ -2,3 +2,9 @@
  (public_name fl_jikken)
  (name main)
  (libraries unix batteries yojson))
+
+(rule
+ (with-stdout-to version.ml
+  (echo "let version = \"%{version:fl_jikken}\""
+        "let ocaml_version = \"%{ocaml_version}\"")
+  ))
