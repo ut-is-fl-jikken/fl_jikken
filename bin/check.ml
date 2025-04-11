@@ -57,7 +57,7 @@ let file_organization extract =
       [extracted_relative]
   in
   let** dir = Files.concat_segments segments in
-  Config.file_dir := Some dir;
+  Config.file_dir := dir;
   if not (Sys.file_exists dir && Sys.is_directory dir) then
     Error (Directory_not_found extracted_relative)
   else
@@ -344,7 +344,7 @@ let file extract t =
   let options = options t in
   let paths =
     Files.product_segments @@
-    [Option.value ~default:"" (!Config.file_dir)] :: [iter options]
+    [!Config.file_dir] :: [iter options]
   in
   debug "Check %s@." @@ subject_of t.kind;
   match paths |> List.find_opt Sys.file_exists with
