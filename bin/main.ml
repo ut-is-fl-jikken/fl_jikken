@@ -65,11 +65,12 @@ let output_results results =
       show_results oc results
     end results;
   | Json { pretty } ->
-    let list =
-      results
-      |> List.map pack_results
+    let json =
+      `Assoc [
+        ("is_ok", `Bool (Check.passed_mandatory results));
+        ("results", `List (results |> List.map pack_results));
+      ]
     in
-    let json = `List list in
     if pretty then
       Yojson.Safe.pretty_to_channel oc json
     else
