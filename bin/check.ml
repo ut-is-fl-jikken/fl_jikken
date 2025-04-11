@@ -337,8 +337,9 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
       in
       r
 
+type file_result = t * string option Error.result list
 
-let file extract t =
+let file extract t : file_result =
   let is_dir = is_directory t.kind in
   let open Target in
   let options = options t in
@@ -347,6 +348,7 @@ let file extract t =
     [!Config.file_dir] :: [iter options]
   in
   debug "Check %s@." @@ subject_of t.kind;
+  t,
   match paths |> List.find_opt Sys.file_exists with
     | None ->
       let path =
@@ -359,3 +361,9 @@ let file extract t =
     | Some path ->
       t.items
       |> List.concat_map (check_item ~is_dir path)
+
+let rec passed_mandatory : file_result list -> bool = function
+  | [] -> true
+  | (t, result) :: xs ->
+      List.for_all (function OK _ -> true | _ -> is_optional t.kind) result
+      && passed_mandatory xs

@@ -77,12 +77,6 @@ let output_results results =
   end;
   if close then close_out oc
 
-let rec passed_mandatory = function
-  | [] -> true
-  | (t, result) :: xs ->
-      List.for_all (function OK _ -> true | _ -> is_optional t.kind) result
-      && passed_mandatory xs
-
 let print_file_structure n =
   let dir = Format.sprintf "%02d-XXXXXX" n in
   let assignments = assoc n in
@@ -201,10 +195,10 @@ let main () =
       |> show_error_and_exit_on_error;
 
       let results = assoc !Config.no
-                    |> List.map (fun t -> t, Check.file copy_method t)
+                    |> List.map (Check.file copy_method)
       in
       output_results results;
-      if (not !Config.force_creation) && (not @@ passed_mandatory results) then
+      if (not !Config.force_creation) && (not @@ Check.passed_mandatory results) then
         (let message = if !Config.ja then
                          "zipファイルを生成しませんでした"
                        else
@@ -238,7 +232,7 @@ let main () =
       |> show_error_and_exit_on_error;
 
       let results = assoc week_number
-                    |> List.map (fun t -> t, Check.file copy_method t)
+                    |> List.map (Check.file copy_method)
       in
       output_results results;
 
