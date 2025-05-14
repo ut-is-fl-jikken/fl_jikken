@@ -39,8 +39,7 @@ let file_organization extract =
   in
   let* () =
     let** cmd = cmd in
-    debug "cmd: %s@." cmd;
-    if Sys.command cmd <> 0 then
+    if Command.run "%s" cmd <> 0 then
       Error Cannot_extract
     else
       Ok ()
@@ -277,7 +276,7 @@ let check_item filename ?(is_dir=Sys.is_directory filename) item =
       in
       let prefix = Config.dir ^ "/" in
       let result =
-        let r = Sys.command @@ Printf.sprintf "cd %s; %s && %s > /dev/null 2>&1" filename !Config.clean !Config.build in
+        let r = Command.run "cd %s; %s && %s" filename !Config.clean !Config.build in
         if r <> 0 then
           Build_failed
         else if Sys.file_exists exec then
