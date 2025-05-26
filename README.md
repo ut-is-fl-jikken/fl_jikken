@@ -1,7 +1,10 @@
 How to install
 ==============
-Run `opam pin add -y fl_jikken https://github.com/ut-is-fl-jikken/fl_jikken.git#main`
+Run
 
+```sh
+opam pin add -y fl_jikken https://github.com/ut-is-fl-jikken/fl_jikken.git#main
+```
 
 How to use
 ==========
