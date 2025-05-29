@@ -43,4 +43,8 @@ jobs:
         run: opam exec -- dune install
 
       - name: install fl_jikken-unifier
-        run: opam exec -- ocamlfind install fl-jikken-unifier unifier/META unifier/constraintSolver.cmi unifier/constraintSolver.cmo unifier/constraintSolver.mli unifier/tySyntax.cmi unifier/tySyntax.cmo unifier/tySyntax.mli
+        run: opam exec -- ocamlfind install fl-jikken-unifier unifier/META unifier/unifier.cmi unifier/unifier.cmo unifier/unifier.mli
+
+      - name: test fl_jikken-unifier
+        run: |
+          opam exec -- ocaml -e '#use "topfind";; #require "fl-jikken-unifier";;'
