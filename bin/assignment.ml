@@ -14,7 +14,8 @@ let list =
    10, Week10.assignments;
    11, Week11.assignments;
    12, Week12.assignments;
-   13, []]
+   13, Week13.assignments
+  ]
 
 let validate_week_no n =
   try
