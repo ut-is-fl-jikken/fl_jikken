@@ -1,7 +1,7 @@
-(lang dune 3.15)
+(lang dune 3.22)
 (name fl_jikken)
 (generate_opam_files)
-(version v2025.6)
+(version v2026.1)
 (source (github ut-is-fl-jikken/fl_jikken))
 (authors "Ken Sakayori <sakayori@is.s.u-tokyo.ac.jp>")
 (maintainers "Ken Sakayori <sakayori@is.s.u-tokyo.ac.jp>")
@@ -10,7 +10,7 @@
  (name fl_jikken)
  (synopsis "Check program for FL jikken")
  (depends
-  (ocaml (= 5.3.0))
+  (ocaml (= 5.4.1))
    ocamlfind
    dune
    batteries
