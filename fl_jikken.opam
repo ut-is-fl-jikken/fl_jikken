@@ -32,5 +32,5 @@ dev-repo: "git+https://github.com/ut-is-fl-jikken/fl_jikken.git"
 x-maintenance-intent: ["(latest)"]
 install: [
   ["dune" "install"]
-  ["ocamlfind" "install" "fl-jikken-unifier" "unifier/META" "unifier/unifier.cmi" "unifier/unifier.cmo" "unifier/unifier.mli"]
+  ["ocamlfind" "install" "fl-jikken-unifier" "unifier/META" "unifier/constraintSolver.cmi" "unifier/constraintSolver.cmo" "unifier/constraintSolver.mli" "unifier/tySyntax.cmi" "unifier/tySyntax.cmo" "unifier/tySyntax.mli"]
 ]
