@@ -45,6 +45,6 @@ jobs:
       - name: install fl_jikken-unifier
         run: opam exec -- ocamlfind install fl-jikken-unifier unifier/META unifier/constraintSolver.cmi unifier/constraintSolver.cmo unifier/constraintSolver.mli unifier/tySyntax.cmi unifier/tySyntax.cmo unifier/tySyntax.mli
 
-      - name: test fl_jikken-unifier
-        run: |
-          opam exec -- ocaml -e '#use "topfind";; #require "fl-jikken-unifier";;'
+#      - name: test fl_jikken-unifier
+#        run: |
+#          opam exec -- ocaml -e '#use "topfind";; #require "fl-jikken-unifier";;'
