@@ -9,7 +9,7 @@ let assignments =
           Type("gcd", "int -> int -> int")];
    toi 2 [ValDef "twice";
           ValDef "repeat"];
-   toi 3 [Type("sum_to_fix", "('a -> 'a -> int) -> 'a list -> 'a list")];
+   toi 3 [Type("sort", "('a -> 'a -> int) -> 'a list -> 'a list")];
    toi 4 [ValDef "fold_left";
           ValDef "fold_right"];
    toi 5 [Type("append", "'a list -> 'a list -> 'a list");
