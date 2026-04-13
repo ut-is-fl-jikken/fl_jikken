@@ -34,4 +34,6 @@ let assignments =
              TypeOpt("prop_cc5", "true_t -> ('a, 'a not_t) and_t");
              TypeOpt("prop_cc5", "true_t -> ('a -> 'a not_t -> 'c) -> 'c");
              TypeOpt("prop_cc6", "(('a -> 'b) -> 'a) -> 'a")];
-   hatten 3 [CurryUncurry("h", "f")]]
+   hatten 3 [ValDef "add";
+             ValDef "mul";
+             ValDef "sub"]]
