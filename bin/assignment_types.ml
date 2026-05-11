@@ -15,7 +15,7 @@ type item =
   | ModDef of string * string option (* Check the existence of a module *)
   | Module of string * string (* Check the type of a module *)
   | Excep of string (* Check the existence of an exception *)
-  | CurryUncurry of string * string (* Just for Hatten 3 of the second lecture *)
+  | CurryUncurry of string * string (* Just for Hatten 2 of the fifth lecture *)
   | Build of string option * string list (* Check the buildability *)
   | Exec of (string * string) list (* Check the behavior of the main. "Exec" must follow "Build" *)
   (* Items for SWI-Prolog files *)
