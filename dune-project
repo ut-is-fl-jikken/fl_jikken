@@ -15,4 +15,5 @@
    dune
    batteries
    yojson
+   qcheck
 ))
