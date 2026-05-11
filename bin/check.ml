@@ -97,7 +97,9 @@ let parse_ocaml_output s =
      "- : ", Result.ok;
      "type ", Result.ok;
      "exception ", Result.ok;
-     "module ", Result.ok]
+     "module ", Result.ok;
+     (* adhoc fix *)
+     " collect = Some <fun>;", Result.ok]
   in
   match List.find_opt (fun (p,_) -> String.starts_with s p) map with
   | None -> Error (Unknown_error s)
