@@ -2,32 +2,27 @@ open Assignment_types
 open Edsl
 open Interpreter
 
-let exec_1 = Exec ["let f = fun x -> x + x;;",                                    "# val f = <fun>";
-                   "f 1;;",                                                       "# - = 2";
-                   "let a = 10 in let f = fun x -> x + a in let a = 20 in f 5;;", "# - = 15";
-                   "(fun f -> fun x -> f (f x)) (fun x -> x + x) 1;;",            "# - = 4"]
-let exec_2 = Exec ["let rec sum x = if x<1 then 0 else x + sum (x-1);;",                 "# val sum = <fun>";
-                   "sum 10;;",                                                           "# - = 55";
-                   "let rec fib x = if x<2 then x else fib(x-1) + fib(x-2) in fib 10;;", "# - = 55"]
-let exec_3 = Exec ["let rec even x = if x=0 then true else odd (x-1) and odd x = if x=0 then false else even (x-1);;", "# val even = <fun>";
-                   "",                                                                                                 "val odd = <fun>";
-                   "even 3;;",                                                                                         "# - = false";
-                   "odd 3;;",                                                                                          "# - = true"]
-let exec_h1 = Exec ["let add x y = x + y;;",                       "# val add = <fun>";
-                    "(fun f x -> f (f x)) (fun x -> add x x) 1;;", "# - = 4"]
-let exec_h3 = Exec ["let a = 10;;",              "# val a = 10";
-                    "let f = dfun x -> x + a;;", "# val f = <fun>";
-                    "let a = 20;;",              "# val a = 20";
-                    "f 5;;",                     "# - = 25"]
+let exec_2_1 = Exec ["(1+2)/3-4;;", "# - = -3"]
+let exec_2_2 = Exec ["4*3 < 2-1;;", "# - = false"]
+let exec_3 = Exec ["let x = 1;;",                           "# val x = 1";
+                   "let y = 2 + x in let x = 3 in x + y;;", "# - = 6"]
+let exec_4_1 = Exec ["let tt=true in if tt||false then 1*2 else 3-4;;", "# - = 2"]
+let exec_4_2 = Exec ["let tt=true in if tt&&false then 1*2 else 3-4;;", "# - = -1"]
+let exec_h2 = Exec ["(1 + 2, 3 * 4)", "# - = (3, 12)";
+                    "let x = 1 :: [] in match x with y :: ys -> y | z -> 0;;", "# - = 1"]
+let exec_h3_1 = Exec ["let x = 10;;",                "# val x = 10";
+                      "let x = 50\nand y = x * 2;;", "# val x = 50";
+                      "",                            "val y = 20"]
+let exec_h3_2 = Exec ["let x = 10;;",                          "# val x = 10";
+                      "let x = 50\nand y = x * 2\nin x + y;;", "# - = 70"]
 
 let assignments =
-  [report;
-   toi 1 [build; exec_1]
-     ~alt:[toi_id 2; toi_id 3];
-   toi 2 [build; exec_2]
-     ~alt:[toi_id 3];
-   toi 3 [build; exec_3];
-   toi 4 [build; exec_2];
-   hatten 1 [build; exec_h1];
-   hatten 2 [build; exec_2];
-   hatten 3 [build; exec_h3]]
+   [report;
+    toi 2 [build; exec_2_1; exec_2_2]
+      ~alt:[toi_id 3; toi_id 4];
+    toi 3 [build; exec_3]
+      ~alt:[toi_id 4];
+    toi 4 [build; exec_2_1; exec_2_2; exec_3; exec_4_1; exec_4_2];
+    hatten 1 [build];
+    hatten 2 [build; exec_h2];
+    hatten 3 [build; exec_h3_1; exec_h3_2]]
