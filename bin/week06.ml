@@ -8,7 +8,7 @@ let exec_3 = Exec ["let x = 1;;",                           "# val x = 1";
                    "let y = 2 + x in let x = 3 in x + y;;", "# - = 6"]
 let exec_4_1 = Exec ["let tt=true in if tt||false then 1*2 else 3-4;;", "# - = 2"]
 let exec_4_2 = Exec ["let tt=true in if tt&&false then 1*2 else 3-4;;", "# - = -1"]
-let exec_h2 = Exec ["(1 + 2, 3 * 4)", "# - = (3, 12)";
+let exec_h2 = Exec ["(1 + 2, 3 * 4);;", "# - = (3, 12)";
                     "let x = 1 :: [] in match x with y :: ys -> y | z -> 0;;", "# - = 1"]
 let exec_h3_1 = Exec ["let x = 10;;",                "# val x = 10";
                       "let x = 50\nand y = x * 2;;", "# val x = 50";
