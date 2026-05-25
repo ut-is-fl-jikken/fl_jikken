@@ -13,6 +13,7 @@ let exec_3 = Exec ["let rec even x = if x=0 then true else odd (x-1) and odd x =
                    "",                                                                                                 "val odd = <fun>";
                    "even 3;;",                                                                                         "# - = false";
                    "odd 3;;",                                                                                          "# - = true"]
+let exec_4 = Exec ["(fun x -> (fun y -> x * y) x) (2+3);;", "# - = 25"]
 let exec_h1 = Exec ["let add x y = x + y;;",                       "# val add = <fun>";
                     "(fun f x -> f (f x)) (fun x -> add x x) 1;;", "# - = 4"]
 let exec_h3 = Exec ["let a = 10;;",              "# val a = 10";
@@ -27,7 +28,7 @@ let assignments =
    toi 2 [build; exec_2]
      ~alt:[toi_id 3];
    toi 3 [build; exec_3];
-   toi 4 [build; exec_2];
+   toi 4 [build; exec_4];
    hatten 1 [build; exec_h1];
-   hatten 2 [build; exec_2];
+   hatten 2 [build; exec_4];
    hatten 3 [build; exec_h3]]
