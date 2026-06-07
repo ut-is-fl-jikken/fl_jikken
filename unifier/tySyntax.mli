@@ -4,6 +4,8 @@ type ty =
   | TyInt
   | TyBool
   | TyFun of ty * ty
+  | TyPair of ty * ty (* Only for hatten *)
+  | TyList of ty (* Only for hatten *)
   | TyVar of tyvar
 
 (*

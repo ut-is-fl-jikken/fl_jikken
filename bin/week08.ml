@@ -10,4 +10,6 @@ let may_be_included =
 
 let assignments =
   [report;
-   toi 1 [Build(None, may_be_included)]]
+   toi 1 [Build(None, may_be_included)];
+   hatten 1 [build];
+  ]
